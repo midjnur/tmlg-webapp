@@ -1,0 +1,7 @@
+# Built output (made by build-site.sh / GitHub Actions)
+site/
+.DS_Store
+# Never commit collected customer data or secrets
+data/
+*.env
+.env*

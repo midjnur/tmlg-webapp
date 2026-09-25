@@ -1,0 +1,1163 @@
+<title>TMLG Delivery Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Single dark world on purpose: a video wall reads like a control room. */
+  :root {
+    color-scheme: dark;
+    --ground: #0c0f11;
+    --panel: #141a1d;
+    --panel-2: #1b2226;
+    --line: #283036;
+    --ink: #ebe9e3;
+    --muted: #8b949a;
+    --amber: #f0b429;
+    --amber-ink: #1a1405;
+    --live: #f0524f;
+    --ok: #3fb984;
+    --info: #5aa9e6;
+    --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+    --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  [hidden] { display: none !important; }
+  html, body { background: var(--ground); color: var(--ink); }
+  body { font-family: var(--body); font-size: 15px; line-height: 1.5; padding-inline: clamp(16px, 3vw, 40px); }
+  .wrap { max-width: 1400px; margin-inline: auto; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* ---------- top bar ---------- */
+  .bar { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; padding-block: 18px; border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: .04em; }
+  .brand svg { width: 34px; height: 20px; }
+  .brand small { font-family: var(--body); font-weight: 400; font-size: 13px; letter-spacing: 0; color: var(--muted); }
+  .nav { display: flex; gap: 22px; margin-left: auto; flex-wrap: wrap; font-size: 14px; }
+  .nav a { color: var(--muted); text-decoration: none; }
+  .nav a:hover, .nav a[aria-current] { color: var(--ink); }
+  .cta { text-decoration: none; display: inline-block; background: var(--amber); color: var(--amber-ink); border: 0; padding: 9px 16px; font-weight: 600; font-size: 14px; border-radius: 3px; cursor: pointer; }
+
+  /* ---------- intro ---------- */
+  .intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 32px; align-items: end; padding-block: 36px 22px; }
+  h1 { font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: clamp(40px, 6vw, 76px); line-height: .92; letter-spacing: .005em; margin: 0; text-wrap: balance; }
+  h1 em { font-style: normal; color: var(--amber); }
+  .lede { color: var(--muted); max-width: 52ch; margin: 0 0 14px; }
+  .tally { display: flex; gap: 22px; flex-wrap: wrap; font-family: var(--mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tally b { color: var(--ink); font-weight: 500; }
+  .tally .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--live); margin-right: 6px; vertical-align: 1px; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  /* ---------- documents ---------- */
+  .docbtn { position: absolute; right: 52px; bottom: 10px; height: 34px; display: inline-flex; align-items: center; gap: 7px; padding: 0 13px 0 10px; border: 0; border-radius: 999px; background: var(--amber); color: var(--amber-ink); font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+  .docbtn svg, .ctrl.docs svg, .docrow svg { width: 17px; height: 17px; flex: none; }
+  .docbtn:hover { filter: brightness(1.08); }
+  .tile:not(.big) .docbtn span { display: none; }
+  .tile:not(.big) .docbtn { padding: 0; width: 34px; justify-content: center; }
+  .tile.big .cap { right: 230px; }
+  .ctrl.docs { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); font-weight: 600; }
+  .docpanel { display: grid; gap: 12px; padding: 16px; background: var(--panel-2); border-radius: 3px; }
+  .docrow { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 13.5px; }
+  .docrow b { display: block; font-weight: 600; }
+  .docrow small { color: var(--muted); font-size: 12px; }
+  .facts { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 0; font-size: 13px; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; }
+  .verified { font-family: var(--mono); font-size: 11px; color: var(--ok); letter-spacing: .04em; text-transform: uppercase; }
+  .docmodal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgba(6,8,10,.78); backdrop-filter: blur(3px); animation: fade .2s; overflow-y: auto; }
+  .dmbox { position: relative; width: min(520px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 26px 24px 22px; display: grid; gap: 16px; }
+  .dmbox h2 { font-family: var(--display); font-weight: 700; font-size: 32px; line-height: 1; text-transform: uppercase; margin: 0; }
+  .dmbox .sub { margin: 0; }
+  .dmbox .close { top: 14px; right: 14px; }
+  .dmbox fieldset { border: 1px solid var(--line); border-radius: 3px; margin: 0; padding: 12px 14px; display: grid; gap: 10px; }
+  .dmbox legend { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 0 6px; }
+  .pick { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; font-size: 14px; cursor: pointer; }
+  .pick input, .check input { accent-color: var(--amber); width: 16px; height: 16px; margin: 2px 0 0; }
+  .pick small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .field { display: grid; gap: 6px; }
+  .field label { font-size: 13px; font-weight: 500; }
+  .field input { background: var(--ground); border: 1px solid var(--line); border-radius: 3px; padding: 11px 12px; color: var(--ink); font: inherit; font-size: 15px; }
+  .field input:focus { outline: 0; border-color: var(--amber); }
+  .field input[aria-invalid="true"] { border-color: var(--live); }
+  .err { color: var(--live); font-size: 13px; margin: 0; min-height: 1.2em; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--muted); cursor: pointer; }
+  .dmbox .cta { padding: 12px 18px; font-size: 15px; text-align: center; }
+  .fine { font-size: 12px; color: var(--muted); margin: 0; }
+  .ready { display: grid; gap: 10px; }
+  .readyrow { display: grid; grid-template-columns: 20px 1fr auto; gap: 10px; align-items: center; padding: 12px 14px; border: 1px solid var(--line); border-radius: 3px; font-size: 14px; }
+  .readyrow .btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .readyrow a, .readyrow button { font-size: 13px; padding: 7px 12px; }
+  .ok-mark { width: 44px; height: 44px; border-radius: 50%; background: rgba(63,185,132,.15); color: var(--ok); display: grid; place-items: center; }
+  .ok-mark svg { width: 24px; height: 24px; }
+
+  /* ---------- whatsapp ---------- */
+  :root { --wa: #25d366; --wa-ink: #06260f; }
+  .dm { display: flex; align-items: center; gap: 14px 18px; flex-wrap: wrap; }
+  .dm p { margin: 0; font-family: var(--display); font-weight: 600; font-size: 26px; text-transform: uppercase; letter-spacing: .02em; }
+  .wa { display: inline-flex; align-items: center; gap: 10px; background: var(--wa); color: var(--wa-ink); text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 18px 10px 14px; border-radius: 999px; transition: transform .15s, box-shadow .15s; }
+  .wa:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(37,211,102,.28); }
+  .wa svg { width: 22px; height: 22px; }
+  .wa-float { position: fixed; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 15; width: 58px; height: 58px; border-radius: 50%; background: var(--wa); color: var(--wa-ink); display: grid; place-items: center; box-shadow: 0 10px 28px rgba(0,0,0,.45); transition: transform .15s; }
+  .wa-float:hover { transform: scale(1.06); }
+  .wa-float svg { width: 30px; height: 30px; }
+  .wa-float::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 0 rgba(37,211,102,.55); animation: ring 2.4s infinite; }
+  @keyframes ring { 70% { box-shadow: 0 0 0 16px rgba(37,211,102,0); } 100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); } }
+
+  /* ---------- presenter ---------- */
+  .intro-copy { display: grid; gap: 18px; align-content: end; }
+  .host { margin: 0; display: grid; gap: 10px; }
+  .host-video, .film-video { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; border-radius: 3px; overflow: hidden; }
+  .host-video video, .film-video video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .host-tag { position: absolute; top: 10px; left: 10px; }
+  .bigplay { position: absolute; left: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 8px; background: var(--amber); color: var(--amber-ink); border: 0; border-radius: 999px; padding: 9px 16px 9px 12px; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+  .bigplay svg { width: 16px; height: 16px; }
+  .bigplay.on { background: rgba(12,15,17,.8); color: var(--ink); backdrop-filter: blur(4px); }
+  .host figcaption { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .langs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .langs span { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-right: 6px; align-self: center; }
+  .topics { display: flex; gap: 6px; flex-wrap: wrap; }
+  .topic { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 3px; padding: 6px 12px; font-size: 13px; cursor: pointer; display: inline-flex; gap: 8px; align-items: baseline; }
+  .topic:hover { color: var(--ink); }
+  .topic[aria-pressed="true"] { border-color: var(--amber); color: var(--ink); }
+  .topic small { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .chip.missing { opacity: .45; }
+  .fallback { font-size: 12px; color: var(--amber); min-height: 1.2em; margin: 0; }
+  .host-len { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ---------- brand film ---------- */
+  .film { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 32px; align-items: center; margin-top: 48px; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; }
+  .film-copy { display: grid; gap: 14px; justify-items: start; }
+  .film-copy h3 { font-size: clamp(30px, 3.4vw, 44px); line-height: .95; margin: 0; text-wrap: balance; }
+  .film-copy p { margin: 0; color: var(--muted); max-width: 44ch; }
+  .film-copy .cta { text-decoration: none; display: inline-block; }
+  .film-copy .ghost { text-decoration: none; color: var(--ink); display: inline-flex; align-items: center; }
+  .film-copy .actions { align-items: center; }
+
+  /* ---------- filters ---------- */
+  .filters { display: flex; gap: 10px 26px; flex-wrap: wrap; align-items: center; padding-block: 6px 16px; }
+  .fgroup { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .fgroup > span { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-right: 4px; }
+  .chip { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: 5px 11px; border-radius: 999px; font-size: 13px; cursor: pointer; }
+  .chip:hover { color: var(--ink); border-color: #3d474e; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+  .chip i { font-style: normal; font-family: var(--mono); font-size: 11px; opacity: .7; margin-left: 4px; }
+
+  /* ---------- the wall ---------- */
+  .wall { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: clamp(150px, 15vw, 220px); grid-auto-flow: dense; gap: 6px; }
+  .tile { position: relative; overflow: hidden; background: #000; border-radius: 3px; cursor: pointer; outline: 0; isolation: isolate; }
+  .tile.w2 { grid-column: span 2; }
+  .tile.h2 { grid-row: span 2; }
+  .tile canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: transform .6s cubic-bezier(.2,.8,.2,1), filter .3s; }
+  .tile:hover canvas, .tile:focus-visible canvas { transform: scale(1.035); }
+  .tile::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 0 var(--amber); transition: box-shadow .2s; }
+  .tile:hover::after, .tile:focus-visible::after { box-shadow: inset 0 0 0 2px var(--amber); }
+  .tile .shade { position: absolute; inset: auto 0 0 0; height: 70%; background: linear-gradient(to top, rgba(6,8,10,.88), rgba(6,8,10,0)); pointer-events: none; }
+  .tile .top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; pointer-events: none; }
+  .badge { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 3px 7px; border-radius: 2px; background: rgba(12,15,17,.72); backdrop-filter: blur(4px); color: var(--ink); white-space: nowrap; }
+  .badge.live { background: var(--live); color: #fff; }
+  .badge.live::before { content: "● "; animation: pulse 1.2s infinite; }
+  .badge.transit { color: var(--info); }
+  .badge.customs { color: var(--amber); }
+  .badge.delivered { color: var(--ok); }
+  .badge.inspection { color: #c9b6ff; }
+  .tc { font-family: var(--mono); font-size: 11px; color: rgba(235,233,227,.75); font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px #000; }
+  .cap { position: absolute; left: 12px; right: 52px; bottom: 12px; pointer-events: none; display: grid; gap: 1px; }
+  .cap b { font-family: var(--display); font-weight: 600; font-size: 21px; letter-spacing: .02em; text-transform: uppercase; line-height: 1.05; }
+  .cap .car, .cap .status { font-size: 13px; color: rgba(235,233,227,.82); max-height: 0; opacity: 0; transition: max-height .25s, opacity .25s; overflow: hidden; }
+  .tile:hover .cap .car, .tile:hover .cap .status, .tile:focus-visible .cap .car, .tile:focus-visible .cap .status, .tile.big .cap .car { max-height: 2.8em; opacity: 1; }
+  .tile.big .cap b { font-size: 30px; }
+  .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: rgba(255,255,255,.12); }
+  .progress i { display: block; height: 100%; background: var(--ink); width: 0; }
+  .snd { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(12,15,17,.7); backdrop-filter: blur(4px); display: grid; place-items: center; cursor: pointer; opacity: .75; transition: opacity .2s, background .2s; }
+  .snd:hover { opacity: 1; }
+  .snd svg { width: 17px; height: 17px; }
+  .snd.on { background: var(--amber); color: var(--amber-ink); opacity: 1; }
+  .tile.on-air::after { box-shadow: inset 0 0 0 2px var(--amber); }
+  .empty { grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 3px; }
+
+  /* ---------- focus ---------- */
+  .focus { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); background: rgba(6,8,10,.74); backdrop-filter: blur(3px) saturate(.7); animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; } }
+  .fbox { width: min(1280px, 100%); height: min(88vh, 780px); display: grid; grid-template-columns: minmax(0, 1fr) 360px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+  .stage { position: relative; background: #000; min-height: 0; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .tile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s cubic-bezier(.2,.8,.2,1); }
+  .tile:hover video, .tile:focus-visible video { transform: scale(1.035); }
+  .fbg { position: absolute; inset: -40px; background: center / cover no-repeat; filter: blur(28px) brightness(.45); }
+  .stage video, .stage .fphoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .stage .fphoto { background: #000; z-index: 2; cursor: zoom-out; }
+  .real { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--amber); }
+  .gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .gallery button { padding: 0; border: 0; background: var(--panel-2); aspect-ratio: 1; border-radius: 2px; overflow: hidden; cursor: zoom-in; }
+  .gallery img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .gallery button:hover img { transform: scale(1.06); }
+  .stage .top { position: absolute; top: 14px; left: 14px; right: 14px; display: flex; gap: 10px; align-items: center; }
+  .stage .tc { margin-left: 4px; }
+  .ctrls { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; gap: 8px; align-items: center; }
+  .ctrl { background: rgba(12,15,17,.75); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.12); border-radius: 3px; padding: 8px 12px; display: inline-flex; gap: 8px; align-items: center; cursor: pointer; font-size: 13px; }
+  .ctrl svg { width: 16px; height: 16px; }
+  .ctrl.on { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); }
+  .ctrls .spacer { flex: 1; }
+  .ctrls .keys { font-family: var(--mono); font-size: 11px; color: rgba(235,233,227,.55); }
+  .close { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.14); background: rgba(12,15,17,.75); cursor: pointer; display: grid; place-items: center; }
+  .close svg { width: 16px; height: 16px; }
+  .fside { overflow-y: auto; padding: 24px 24px 28px; display: grid; align-content: start; gap: 20px; border-left: 1px solid var(--line); }
+  .route { font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+  .fside h2 { font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1; text-transform: uppercase; margin: 4px 0 0; text-wrap: balance; }
+  .specs { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: 13.5px; }
+  .specs dt { color: var(--muted); }
+  .specs dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .specs dd.mono { font-family: var(--mono); font-size: 12.5px; }
+  .label { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 0 0 10px; }
+  .tl { list-style: none; margin: 0; padding: 0; display: grid; }
+  .tl li { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; position: relative; padding-block: 5px; font-size: 14px; color: var(--muted); }
+  .tl li::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--line); justify-self: center; background: var(--panel); z-index: 1; }
+  .tl li:not(:last-child)::after { content: ""; position: absolute; left: 8px; top: 20px; bottom: -8px; width: 2px; background: var(--line); }
+  .tl li.done { color: var(--ink); }
+  .tl li.done::before { background: var(--ok); border-color: var(--ok); }
+  .tl li.done:not(:last-child)::after { background: var(--ok); }
+  .tl li.now { color: var(--ink); font-weight: 600; }
+  .tl li.now::before { border-color: var(--amber); background: var(--amber); box-shadow: 0 0 0 4px rgba(240,180,41,.2); animation: pulse 1.6s infinite; }
+  .tl time { font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 400; }
+  .pay { display: grid; gap: 8px; }
+  .paybar { display: grid; grid-template-columns: 1fr 9fr; gap: 3px; height: 8px; }
+  .paybar i { border-radius: 1px; background: var(--line); }
+  .paybar i.paid { background: var(--ok); }
+  .paybar i.due { background: var(--amber); animation: pulse 1.6s infinite; }
+  .pay p { margin: 0; font-size: 13px; color: var(--muted); }
+  .pay p b { color: var(--ink); font-weight: 500; }
+  .quote { margin: 0; padding: 14px 16px; background: var(--panel-2); border-radius: 3px; font-size: 14px; }
+  .quote footer { margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ghost { background: transparent; border: 1px solid var(--line); padding: 9px 14px; border-radius: 3px; cursor: pointer; font-size: 14px; }
+  .ghost:hover { border-color: var(--muted); }
+
+  /* ---------- routes map ---------- */
+  section.below { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 28px; padding-block: 56px 24px; }
+  h3 { font-family: var(--display); font-weight: 700; font-size: 30px; text-transform: uppercase; margin: 0 0 6px; letter-spacing: .01em; }
+  .sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; max-width: 60ch; }
+  .mapbox { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; }
+  .mapbox svg { display: block; width: 100%; min-width: 620px; height: auto; }
+  .maphint { font-family: var(--mono); font-size: 12px; color: var(--muted); padding: 10px 14px; border-top: 1px solid var(--line); min-height: 1.5em; }
+  .arc { fill: none; stroke-width: 1.6; stroke-dasharray: 4 5; animation: flow 1.4s linear infinite; cursor: pointer; opacity: .75; transition: opacity .2s, stroke-width .2s; }
+  .arc:hover, .arc.hl { opacity: 1; stroke-width: 3; }
+  .arc-hit { fill: none; stroke: transparent; stroke-width: 14; cursor: pointer; }
+  @keyframes flow { to { stroke-dashoffset: -18; } }
+  .steps { display: grid; gap: 14px; align-content: start; }
+  .step { display: grid; grid-template-columns: 64px 1fr; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+  .step .pct { font-family: var(--display); font-size: 40px; font-weight: 700; line-height: .9; color: var(--amber); }
+  .step h4 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+  .step p { margin: 0; color: var(--muted); font-size: 14px; }
+  /* ---------- how to pay ---------- */
+  .howpay { border-top: 1px solid var(--line); padding-block: 40px 56px; display: grid; gap: 28px; }
+  .howpay-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 20px; }
+  .split { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 14px 16px; font-variant-numeric: tabular-nums; }
+  .split label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .split .inp { display: flex; align-items: center; gap: 4px; background: var(--ground); border: 1px solid var(--line); border-radius: 3px; padding: 6px 10px; font-family: var(--mono); }
+  .split input { width: 8ch; background: transparent; border: 0; color: var(--ink); font: inherit; font-size: 15px; outline: 0; }
+  .split .inp:focus-within { border-color: var(--amber); }
+  .split output { font-family: var(--mono); font-size: 15px; }
+  .split output b { font-family: var(--display); font-size: 26px; font-weight: 700; color: var(--amber); margin-right: 6px; }
+  .split small { display: block; font-family: var(--body); font-size: 11.5px; color: var(--muted); }
+  .methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+  .method { background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 18px; display: grid; gap: 10px; align-content: start; }
+  .method h4 { margin: 0; font-size: 16px; font-weight: 600; }
+  .method p { margin: 0; color: var(--muted); font-size: 14px; }
+  .for { display: flex; gap: 6px; flex-wrap: wrap; }
+  .for span { font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 2px; border: 1px solid var(--line); color: var(--muted); }
+  .for span.yes { border-color: rgba(63,185,132,.5); color: var(--ok); }
+  .meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 13px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; }
+  .nope { font-size: 13.5px; color: var(--muted); margin: 0; }
+  .nope b { color: var(--ink); font-weight: 500; }
+  .tips { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 32px; }
+  .tips li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+  .tips li b { color: var(--ink); font-weight: 600; display: block; margin-bottom: 2px; }
+  .tips svg { width: 18px; height: 18px; margin-top: 2px; color: var(--ok); }
+  .tips li.warn svg { color: var(--live); }
+  .tips li.warn b { color: var(--live); }
+  .note { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-block: 18px 32px; margin-top: 12px; }
+
+  @media (max-width: 980px) {
+    .intro, section.below, .film { grid-template-columns: 1fr; }
+    .fbox { grid-template-columns: 1fr; grid-template-rows: minmax(240px, 48vh) auto; height: auto; max-height: 92vh; overflow-y: auto; }
+    .fside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+  }
+  @media (max-width: 720px) {
+    .wall { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 170px; }
+    .nav { display: none; }
+    .ctrls .keys { display: none; }
+    .tile .cap .car { max-height: 2.8em; opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 34 20" aria-hidden="true"><circle cx="4" cy="15" r="3" fill="#f0b429"/><path d="M4 15 C 12 0, 22 0, 30 8" stroke="#ebe9e3" stroke-width="2" fill="none" stroke-dasharray="3 3"/><circle cx="30" cy="8" r="3" fill="#ebe9e3"/></svg>
+      TMLG <small>EU cars, delivered where you live</small>
+    </div>
+    <nav class="nav" aria-label="Main">
+      <a href="#" aria-current="page">Deliveries</a>
+      <a href="#how-to-pay">How to pay</a>
+    </nav>
+    <a class="cta" href="https://themotorlist.com/" target="_blank" rel="noopener">Find my car</a>
+  </header>
+
+  <section class="intro">
+    <div class="intro-copy">
+    <h1>Not selling cars. <em>Delivering dreams.</em></h1>
+    <div>
+      <div class="dm">
+        <p>DM if you are ready!</p>
+        <a class="wa" href="https://wa.me/995595907136?text=Hi%20TMLG!%20I%27m%20ready%20%E2%80%94%20can%20we%20do%20a%20video%20call%20about%20a%20car%3F" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2A9.7 9.7 0 0 0 3.6 16.8L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.6 9.6h5.6a1 1 0 0 1 1 1v3.6a1 1 0 0 1-1 1H7.6a1 1 0 0 1-1-1v-3.6a1 1 0 0 1 1-1Zm6.6 2.2 2.6-1.6v5.2l-2.6-1.6Z" fill="currentColor"/></svg><span>Video call on WhatsApp</span></a>
+      </div>
+      <div class="tally" id="tally" style="margin-top:16px"></div>
+    </div>
+    </div>
+    <figure class="host">
+      <div class="topics" id="host-topics" role="group" aria-label="Choose a video"></div>
+      <div class="host-video">
+        <video id="host-v" muted loop playsinline autoplay preload="metadata" aria-label="A message from TMLG"></video>
+        <span class="badge host-tag">A message from TMLG</span>
+        <button class="bigplay" id="host-play" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12l10-6z" fill="currentColor"/></svg><span>Play with sound</span></button>
+      </div>
+      <figcaption>
+        <div class="langs" id="host-langs" role="group" aria-label="Video language"><span>Language</span></div>
+        <span class="host-len" id="host-len"></span>
+      </figcaption>
+      <p class="fallback" id="host-fallback" aria-live="polite"></p>
+    </figure>
+  </section>
+
+  <div class="filters" id="filters"></div>
+  <div class="wall" id="wall"></div>
+
+  <section class="film" aria-labelledby="film-title">
+    <div class="film-video">
+      <video id="film-v" src="media/loop-studio.mp4" poster="media/loop-studio.jpg" muted loop playsinline preload="metadata" aria-hidden="true"></video>
+    </div>
+    <div class="film-copy">
+      <h3 id="film-title">The car you want is already in Europe.</h3>
+      <p>The car you’re dreaming of? We’ve already bought it. It’s parked on our lot, checked and ready to ship to you.</p>
+      <p style="color:var(--ink);font-weight:500">Ready to get your dream? Just video call me on WhatsApp.</p>
+      <div class="actions">
+        <a class="wa" href="https://wa.me/995595907136?text=Hi%20TMLG!%20I%27m%20ready%20%E2%80%94%20can%20we%20do%20a%20video%20call%20about%20a%20car%3F" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2A9.7 9.7 0 0 0 3.6 16.8L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.6 9.6h5.6a1 1 0 0 1 1 1v3.6a1 1 0 0 1-1 1H7.6a1 1 0 0 1-1-1v-3.6a1 1 0 0 1 1-1Zm6.6 2.2 2.6-1.6v5.2l-2.6-1.6Z" fill="currentColor"/></svg><span>Video call me on WhatsApp</span></a>
+        <a class="ghost" href="https://themotorlist.com/" target="_blank" rel="noopener">See cars for sale</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="below">
+    <div>
+      <h3>Where they’re heading</h3>
+      <p class="sub">Each line runs from a European seller to a buyer. Hover a line to see which car it is. Click it to open that delivery.</p>
+      <div class="mapbox">
+        <svg id="map" viewBox="0 0 900 330" role="img" aria-label="Route map from European sellers to destination cities"></svg>
+        <div class="maphint" id="maphint">Hover a route</div>
+      </div>
+    </div>
+    <div class="steps" id="pay">
+      <div>
+        <h3>You pay twice</h3>
+        <p class="sub">Most of the money moves only after the car reaches your city.</p>
+      </div>
+      <div class="step"><div class="pct">10%</div><div><h4>When you order</h4><p>This reserves the car. The seller then gets it inspected and hands it to the carrier.</p></div></div>
+      <div class="step"><div class="pct">90%</div><div><h4>When it clears customs in your city</h4><p>You’ve watched it travel the whole way. You pay the rest once it clears customs. We hand you the keys as soon as the money arrives.</p></div></div>
+    </div>
+  </section>
+
+
+  <section class="howpay" id="how-to-pay" aria-labelledby="hp-title">
+    <div class="howpay-head">
+      <div>
+        <h3 id="hp-title">How to pay</h3>
+        <p class="sub" style="margin:0">Three ways to pay, for buyers anywhere from Tbilisi to Bishkek. Pick whichever your bank makes easiest.</p>
+      </div>
+      <div class="split" role="group" aria-label="Payment split for a car price">
+        <div><label for="pay-price">Car price</label><div class="inp">€<input id="pay-price" type="text" inputmode="numeric" value="34,900" aria-describedby="pay-hint"></div></div>
+        <output id="pay-now" for="pay-price"><b>10%</b><span></span><small>when you order</small></output>
+        <output id="pay-later" for="pay-price"><b>90%</b><span></span><small>when it clears customs</small></output>
+      </div>
+    </div>
+
+    <div class="methods">
+      <article class="method">
+        <h4>Bank transfer in euros</h4>
+        <div class="for"><span class="yes">10% deposit</span><span class="yes">90% balance</span></div>
+        <p>SEPA or SWIFT transfer straight to our EU account. This is the simplest way to pay the 90%, and it costs least on large amounts.</p>
+        <dl class="meta"><dt>Arrives in</dt><dd>1–3 working days (SWIFT)</dd><dt>Fees</dt><dd>Your bank’s SWIFT fee. Choose “OUR” so nothing is deducted.</dd></dl>
+      </article>
+      <article class="method">
+        <h4>Local currency transfer</h4>
+        <div class="for"><span class="yes">10% deposit</span><span class="yes">90% balance</span></div>
+        <p>Pay in GEL, AMD, AZN, KZT, UZS or KGS to our partner’s local account. Your portal shows the exact amount at today’s rate.</p>
+        <dl class="meta"><dt>Arrives in</dt><dd>Same day, often within an hour</dd><dt>Fees</dt><dd>Usually none. There’s one currency conversion, which we do.</dd></dl>
+      </article>
+      <article class="method">
+        <h4>Card payment link</h4>
+        <div class="for"><span class="yes">10% deposit</span><span>90% balance</span></div>
+        <p>Visa or Mastercard through a secure link we send you. It’s the fastest way to reserve a car before someone else buys it.</p>
+        <dl class="meta"><dt>Arrives in</dt><dd>Instantly</dd><dt>Fees</dt><dd>None from us. Your bank may charge for foreign-currency payments.</dd></dl>
+      </article>
+    </div>
+    <p class="nope" id="pay-hint"><b>We don’t accept</b> cash, crypto or payments from someone else’s account. Every payment has to be traceable to you, the buyer, or customs won’t register the car in your name.</p>
+
+    <div>
+      <p class="label">Tips so your money arrives without delays</p>
+      <ul class="tips">
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3.5 9.5 3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2" fill="none"/></svg><span><b>Pay from an account in your own name</b>Transfers from friends, relatives or companies get stopped by the banks’ compliance checks and sent back, which takes weeks.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3.5 9.5 3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2" fill="none"/></svg><span><b>Put your order number in the reference</b>Write it exactly as shown, e.g. <span style="font-family:var(--mono)">TMLG-2026-0417</span>. Then we can match your payment the same day.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3.5 9.5 3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2" fill="none"/></svg><span><b>Raise your transfer limit before the 90%</b>Many banks cap international transfers at a few thousand euros a day. Ask your bank or change the limit in its app a week ahead.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3.5 9.5 3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2" fill="none"/></svg><span><b>Upload the transfer receipt</b>Add the bank’s confirmation (for SWIFT, the MT103) in your portal. We can prepare the handover while the money is still on its way.</span></li>
+        <li><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3.5 9.5 3.5 3.5 7.5-8" stroke="currentColor" stroke-width="2" fill="none"/></svg><span><b>Compare the rate before you choose a currency</b>If your bank’s euro rate is poor, pay in local currency. That way the money is converted once, not twice.</span></li>
+        <li class="warn"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2 17 16H1z" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M9 7v4M9 13v1.5" stroke="currentColor" stroke-width="1.8"/></svg><span><b>Our bank details never change</b>Copy them only from your portal. If anyone sends you “new” details by WhatsApp or email, it’s fraud. Call your manager before you pay.</span></li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<a class="wa-float" href="https://wa.me/995595907136?text=Hi%20TMLG!%20I%27m%20ready%20%E2%80%94%20can%20we%20do%20a%20video%20call%20about%20a%20car%3F" target="_blank" rel="noopener" aria-label="Video call us on WhatsApp" title="Video call us on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2A9.7 9.7 0 0 0 3.6 16.8L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.6 9.6h5.6a1 1 0 0 1 1 1v3.6a1 1 0 0 1-1 1H7.6a1 1 0 0 1-1-1v-3.6a1 1 0 0 1 1-1Zm6.6 2.2 2.6-1.6v5.2l-2.6-1.6Z" fill="currentColor"/></svg></a>
+
+<div class="docmodal" id="docmodal" hidden role="dialog" aria-modal="true" aria-labelledby="dm-title">
+  <form class="dmbox" id="dm-form" name="document-request" method="POST" data-netlify="true" netlify-honeypot="company" novalidate>
+    <input type="hidden" name="form-name" value="document-request">
+    <input type="hidden" name="car" id="dm-car">
+    <input type="hidden" name="documents" id="dm-docs">
+    <p hidden><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off"></label></p>
+    <button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="2"/></svg></button>
+    <div><div class="route" id="dm-ref"></div><h2 id="dm-title">Request documents</h2></div>
+    <p class="sub">These come straight from the seller. Enter your email and you get them right away.</p>
+    <fieldset><legend>Documents for this car</legend><div id="dm-list" style="display:grid;gap:10px"></div></fieldset>
+    <div class="field">
+      <label for="dm-email">Your email</label>
+      <input id="dm-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required aria-describedby="dm-err">
+      <p class="err" id="dm-err" aria-live="polite"></p>
+    </div>
+    <label class="check"><input type="checkbox" id="dm-updates" name="marketing" value="yes"> Email me when you have more cars like this</label>
+    <button type="submit" class="cta">Get the documents</button>
+    <p class="fine">We use your email only for this car and the updates you ask for. <a href="privacy.html" target="_blank" rel="noopener" style="color:inherit">Privacy</a></p>
+  </form>
+  <div class="dmbox" id="dm-done" hidden>
+    <button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="2"/></svg></button>
+    <div class="ok-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" fill="none"/></svg></div>
+    <div><h2>Your documents are ready</h2><p class="sub" id="dm-for" style="margin-top:8px"></p></div>
+    <div class="ready" id="dm-ready"></div>
+    <a class="wa" id="dm-wa" target="_blank" rel="noopener" style="justify-self:start"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2A9.7 9.7 0 0 0 3.6 16.8L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.6 9.6h5.6a1 1 0 0 1 1 1v3.6a1 1 0 0 1-1 1H7.6a1 1 0 0 1-1-1v-3.6a1 1 0 0 1 1-1Zm6.6 2.2 2.6-1.6v5.2l-2.6-1.6Z" fill="currentColor"/></svg><span>Ask me about this car on WhatsApp</span></a>
+  </div>
+</div>
+
+<div class="focus" id="focus" hidden role="dialog" aria-modal="true" aria-labelledby="f-title">
+  <div class="fbox">
+    <div class="stage" id="stage">
+      <div class="fbg" id="fbg" hidden></div>
+      <canvas id="fcanvas"></canvas>
+      <video id="fvideo" playsinline loop muted preload="metadata" hidden></video>
+      <img class="fphoto" id="fphoto" alt="" hidden>
+      <div class="top"><span class="badge" id="f-badge"></span><span class="tc" id="f-tc"></span></div>
+      <div class="ctrls">
+        <button class="ctrl" id="f-snd" type="button"></button>
+        <button class="ctrl" id="f-prev" type="button" aria-label="Previous delivery"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>
+        <button class="ctrl" id="f-next" type="button" aria-label="Next delivery"><svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>
+        <button class="ctrl docs" id="f-docs" type="button" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6.5L15 6v11.5H5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg><span>Request documents</span></button>
+        <span class="spacer"></span>
+        <span class="keys">← → switch · M sound · Esc back to wall</span>
+      </div>
+      <button class="close" id="f-close" type="button" aria-label="Back to the wall"><svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="2"/></svg></button>
+    </div>
+    <aside class="fside" id="fside"></aside>
+  </div>
+</div>
+
+<script>
+(() => {
+const STAGES = ['Purchased', 'Inspected', 'Shipped', 'Border', 'Customs', 'Delivered'];
+const P = {
+  Munich:[11.58,48.14], Bremerhaven:[8.58,53.54], Hamburg:[9.99,53.55], Stuttgart:[9.18,48.78], Cologne:[6.96,50.94],
+  Frankfurt:[8.68,50.11], Antwerp:[4.40,51.22], Berlin:[13.40,52.52], Milan:[9.19,45.46], Hungary:[19.04,47.50],
+  Tbilisi:[44.79,41.72], Poti:[41.67,42.15], Almaty:[76.89,43.24], Yerevan:[44.51,40.18], Baku:[49.87,40.41],
+  Tashkent:[69.24,41.30], Batumi:[41.64,41.64], Bishkek:[74.59,42.87]
+};
+// Example data only.
+const D = [
+  { id:'gls', ref:'CAR0000001', from:'Hungary', fcc:'HU', to:'Tbilisi', tcc:'GE', country:'Georgia', car:'Mercedes-Benz GLS 450 d 4MATIC', year:'New', km:'New car', vin:'On file', color:'#6b6f73', scene:'video', sky:'noon', stage:1, status:'inspection', badge:'Real footage · dealer walkaround', tz:2, tzn:'CEST', clip:37, span:'w2 h2 big',
+    video:'media/gls-walkaround.mp4', poster:'media/gls-poster.jpg',
+    photos:['04','09','20','08','11','12','15','16','03','13','19','05'].map(n => `media/gls-${n}.jpg`),
+    docs:[{ file:'docs/CAR0000001/MB-GLS450d.pdf', name:'MB-GLS450d.pdf', title:'Mercedes-Benz price and equipment list', meta:'PDF · 7 pages · Hungarian · 0.9 MB', issued:'Issued by the dealer on 21 Sep 2026',
+      what:'Every factory option with its code, paint, upholstery, packages, technical data and the dealer’s price.' }],
+    facts:[['Engine','2,989 cc diesel, mild hybrid'],['Power','270 kW / 367 hp'],['0–100 km/h','6.1 s'],['Top speed','250 km/h'],['Seats','7 (5+2)'],['Paint','MANUFAKTUR silicon grey'],['Interior','Macchiato beige / black leather'],['Highlights','AMG Line Premium Plus, 23″ AMG wheels, Burmester 3D sound, head-up display, panoramic roof, AIRMATIC, towbar']],
+    ship:'Truck to Poti port, then truck to Tbilisi', days:'Filmed 23 Sep 2026', cost:'Quote on request', dates:['21 Sep','23 Sep','ETA —','ETA —','ETA —','ETA —'] },
+  { id:'x5', from:'Bremerhaven', fcc:'DE', to:'Poti', tcc:'GE', country:'Georgia', car:'BMW X5 xDrive30d', year:2020, km:'91,200 km', vin:'WBACR6100L9•••••3', color:'#1f2b47', scene:'ferry', sky:'overcast', stage:2, status:'transit', badge:'Boarding RoRo · Bremerhaven', tz:2, tzn:'CEST', clip:60, span:'w2',
+    ship:'RoRo ferry Bremerhaven to Poti via the Bosporus', days:'Day 13 of ~26', cost:'€38,250', dates:['10 Sep','12 Sep','22 Sep','ETA 4 Oct','ETA 6 Oct','ETA 8 Oct'] },
+  { id:'rav4', from:'Hamburg', fcc:'DE', to:'Almaty', tcc:'KZ', country:'Kazakhstan', car:'Toyota RAV4 Hybrid', year:2022, km:'42,900 km', vin:'JTMW43FV40D•••••1', color:'#8b1e24', scene:'customs', sky:'night', stage:4, status:'customs', badge:'Customs · Almaty', tz:5, tzn:'ALMT', clip:58, span:'',
+    ship:'Rail to Dostyk, truck to Almaty', days:'Day 21 of ~24', cost:'€31,600', dates:['28 Aug','30 Aug','2 Sep','16 Sep','22 Sep','ETA 25 Sep'] },
+  { id:'macan', from:'Stuttgart', fcc:'DE', to:'Yerevan', tcc:'AM', country:'Armenia', car:'Porsche Macan S', year:2019, km:'77,000 km', vin:'WP1ZZZ95ZKL•••••9', color:'#e7e3d9', scene:'border', sky:'noon', stage:3, status:'live', badge:'LIVE', tz:4, tzn:'AMT', clip:0, span:'',
+    checkpoint:'SADAKHLO · BAGRATASHEN', flag:['#d90012','#0033a0','#f2a800'],
+    ship:'Truck to Poti via RoRo, truck across Georgia', days:'Day 18 of ~20', cost:'€41,900', dates:['1 Sep','3 Sep','5 Sep','Today','ETA 25 Sep','ETA 26 Sep'] },
+  { id:'touareg', from:'Cologne', fcc:'DE', to:'Baku', tcc:'AZ', country:'Azerbaijan', car:'Volkswagen Touareg V6 TDI', year:2020, km:'88,700 km', vin:'WVGZZZCRZLD•••••2', color:'#3b3f43', scene:'road', sky:'dawn', stage:3, status:'transit', badge:'On the road near Ganja', tz:4, tzn:'AZT', clip:66, span:'w2',
+    ship:'Truck the whole way, via Turkey and Georgia', days:'Day 14 of ~18', cost:'€33,100', dates:['6 Sep','8 Sep','9 Sep','21 Sep','ETA 25 Sep','ETA 26 Sep'] },
+  { id:'q7', from:'Frankfurt', fcc:'DE', to:'Tashkent', tcc:'UZ', country:'Uzbekistan', car:'Audi Q7 50 TDI', year:2021, km:'64,300 km', vin:'WAUZZZ4M2MD•••••6', color:'#0f1012', scene:'road', sky:'noon', stage:2, status:'transit', badge:'Crossing Kazakhstan', tz:5, tzn:'UZT', clip:52, span:'',
+    ship:'Truck via the Caspian ferry at Aktau', days:'Day 16 of ~27', cost:'€45,800', dates:['3 Sep','5 Sep','7 Sep','ETA 29 Sep','ETA 2 Oct','ETA 4 Oct'] },
+  { id:'rx', from:'Antwerp', fcc:'BE', to:'Batumi', tcc:'GE', country:'Georgia', car:'Lexus RX 450h', year:2020, km:'70,100 km', vin:'JTJBGMCA70J•••••4', color:'#4a5b6e', scene:'handover', sky:'noon', stage:5, status:'delivered', badge:'Delivered yesterday', tz:4, tzn:'GET', clip:48, span:'w2',
+    ship:'RoRo Antwerp to Batumi', days:'19 days door to door', cost:'€36,400', dates:['29 Aug','1 Sep','3 Sep','—','20 Sep','22 Sep'],
+    quote:['Seeing other buyers’ cars arrive is what convinced me to pay the deposit.','Nino, Batumi · buyer'] },
+  { id:'crv', from:'Berlin', fcc:'DE', to:'Bishkek', tcc:'KG', country:'Kyrgyzstan', car:'Honda CR-V e:HEV', year:2021, km:'55,800 km', vin:'SHSRW6860MU•••••8', color:'#d9dcdf', scene:'road', sky:'night', stage:3, status:'live', badge:'LIVE', tz:6, tzn:'KGT', clip:0, span:'',
+    ship:'Truck via Kazakhstan, M39 highway', days:'Day 19 of ~22', cost:'€29,700', dates:['30 Aug','1 Sep','3 Sep','Today','ETA 25 Sep','ETA 26 Sep'] },
+  { id:'e220', from:'Munich', fcc:'DE', to:'Tbilisi', tcc:'GE', country:'Georgia', car:'Mercedes-Benz E 220d', year:2021, km:'68,400 km', vin:'W1K2130041A•••••7', color:'#c3c8cd', scene:'handover', sky:'dusk', stage:5, status:'delivered', badge:'Handed over 2 h ago', tz:4, tzn:'GET', clip:74, span:'w2',
+    ship:'Truck to Bremerhaven, RoRo to Poti, truck to Tbilisi', days:'17 days door to door', cost:'€34,900', dates:['2 Sep','4 Sep','6 Sep','19 Sep','21 Sep','23 Sep'],
+    quote:['I watched it come off the carrier on this page before it reached my street.','Giorgi, Tbilisi · buyer'] },
+];
+const STATUS_LABEL = { live:'Live', transit:'In transit', customs:'At customs', delivered:'Delivered', inspection:'Inspection' };
+const STATUS_COLOR = { live:'#f0524f', transit:'#5aa9e6', customs:'#f0b429', delivered:'#3fb984', inspection:'#c9b6ff' };
+const byId = Object.fromEntries(D.map(d => [d.id, d]));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const T0 = performance.now();
+
+/* ================= drawing ================= */
+const SKY = {
+  dawn:     { top:'#26314c', bot:'#e0925f', ground:'#2b2724', hill:'#3b3441', sun:'#ffd29a' },
+  noon:     { top:'#5f93c4', bot:'#d3e3ec', ground:'#6b6a5b', hill:'#5c7868', sun:'#fff6d8' },
+  dusk:     { top:'#1a2140', bot:'#c2585c', ground:'#221d22', hill:'#2e2638', sun:'#ffb07a' },
+  night:    { top:'#04060c', bot:'#172239', ground:'#0f1115', hill:'#10172a', sun:null },
+  overcast: { top:'#56616c', bot:'#aeb6bc', ground:'#474b4c', hill:'#58636a', sun:null },
+  indoor:   { top:'#2a3036', bot:'#1a1e22', ground:'#2b2f33', hill:'#222', sun:null },
+};
+function rng(seed) { let a = 0; for (const ch of seed) a = (a * 31 + ch.charCodeAt(0)) | 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function skyFill(c, w, h, S, until) { const g = c.createLinearGradient(0, 0, 0, h * until); g.addColorStop(0, S.top); g.addColorStop(1, S.bot); c.fillStyle = g; c.fillRect(0, 0, w, h * until + 1); }
+function sun(c, x, y, r, col) { const g = c.createRadialGradient(x, y, 0, x, y, r * 5); g.addColorStop(0, col); g.addColorStop(.18, col + 'cc'); g.addColorStop(1, col + '00'); c.fillStyle = g; c.beginPath(); c.arc(x, y, r * 5, 0, 7); c.fill(); }
+function stars(c, w, h, seed) { c.fillStyle = 'rgba(255,255,255,.7)'; for (const s of seed.stars) c.fillRect(s[0] * w, s[1] * h * .5, s[2], s[2]); }
+function vignette(c, w, h) { const g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * .3, w / 2, h / 2, Math.max(w, h) * .75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.5)'); c.fillStyle = g; c.fillRect(0, 0, w, h); }
+function wheel(c, x, y, r, t, spin) { c.fillStyle = '#0d0e10'; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.fillStyle = '#7d8388'; c.beginPath(); c.arc(x, y, r * .5, 0, 7); c.fill(); if (spin) { c.strokeStyle = '#2a2d31'; c.lineWidth = Math.max(1, r * .12); const a = t * spin; c.beginPath(); c.moveTo(x - Math.cos(a) * r * .45, y - Math.sin(a) * r * .45); c.lineTo(x + Math.cos(a) * r * .45, y + Math.sin(a) * r * .45); c.stroke(); } }
+// Side-profile SUV facing right. x = rear, yb = ground line, L = length.
+function car(c, x, yb, L, color, o = {}) {
+  const H = L * .36, r = L * .092;
+  c.fillStyle = color;
+  rr(c, x, yb - H * .64, L, H * .5, H * .13); c.fill();
+  c.beginPath(); c.moveTo(x + L * .1, yb - H * .6); c.lineTo(x + L * .16, yb - H); c.lineTo(x + L * .66, yb - H); c.lineTo(x + L * .84, yb - H * .6); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(16,22,30,.88)';
+  c.beginPath(); c.moveTo(x + L * .15, yb - H * .66); c.lineTo(x + L * .19, yb - H * .93); c.lineTo(x + L * .43, yb - H * .93); c.lineTo(x + L * .43, yb - H * .66); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(x + L * .46, yb - H * .66); c.lineTo(x + L * .46, yb - H * .93); c.lineTo(x + L * .645, yb - H * .93); c.lineTo(x + L * .78, yb - H * .66); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.16)'; c.fillRect(x + L * .04, yb - H * .6, L * .92, Math.max(1, H * .03));
+  c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(x, yb - H * .26, L, H * .12);
+  c.fillStyle = '#b3202a'; c.fillRect(x, yb - H * .56, Math.max(2, L * .018), H * .12);
+  c.fillStyle = o.lights ? '#fff7dc' : '#d8d2c0'; c.fillRect(x + L - Math.max(2, L * .02), yb - H * .56, Math.max(2, L * .02), H * .1);
+  if (o.lights) { const g = c.createLinearGradient(x + L, 0, x + L + L * .9, 0); g.addColorStop(0, 'rgba(255,240,200,.45)'); g.addColorStop(1, 'rgba(255,240,200,0)'); c.fillStyle = g; c.beginPath(); c.moveTo(x + L, yb - H * .52); c.lineTo(x + L * 1.9, yb - H * .8); c.lineTo(x + L * 1.9, yb); c.closePath(); c.fill(); }
+  wheel(c, x + L * .2, yb - r, r, o.t || 0, o.spin); wheel(c, x + L * .8, yb - r, r, o.t || 0, o.spin);
+}
+function carrier(c, x, yb, L, colors, t, o = {}) {
+  const Dk = L * 2.2, cabL = L * .6, cabH = L * .56, r = L * .085;
+  const y0 = yb - r * 2.3, y1 = y0 - L * .47;
+  c.fillStyle = '#1c1f22'; c.fillRect(x, yb - r * 1.6, Dk + cabL + L * .06, r * .7);
+  c.strokeStyle = '#4a5055'; c.lineWidth = Math.max(1.5, L * .02);
+  for (let i = 0; i <= 6; i++) { const px = x + Dk * i / 6; c.beginPath(); c.moveTo(px, y0); c.lineTo(px, y1); c.stroke(); }
+  c.fillStyle = '#50565b'; c.fillRect(x, y0, Dk, L * .03); c.fillRect(x, y1, Dk, L * .03);
+  car(c, x + Dk * .03, y0, L * .95, colors[0], { t, spin: o.spin }); car(c, x + Dk * .52, y0, L * .95, colors[1], { t, spin: o.spin });
+  car(c, x + Dk * .03, y1, L * .95, colors[2]); car(c, x + Dk * .52, y1, L * .95, colors[3]);
+  const cx = x + Dk + L * .06;
+  c.fillStyle = o.cab || '#d9d4c8'; rr(c, cx, yb - r * 1.4 - cabH, cabL, cabH, L * .05); c.fill();
+  c.fillStyle = 'rgba(16,22,30,.85)'; rr(c, cx + cabL * .55, yb - r * 1.4 - cabH * .9, cabL * .4, cabH * .38, L * .02); c.fill();
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(cx, yb - r * 1.4 - cabH * .45, cabL, cabH * .06);
+  if (o.lights) { const g = c.createLinearGradient(cx + cabL, 0, cx + cabL + L * 1.6, 0); g.addColorStop(0, 'rgba(255,240,200,.5)'); g.addColorStop(1, 'rgba(255,240,200,0)'); c.fillStyle = g; c.beginPath(); c.moveTo(cx + cabL, yb - r * 3); c.lineTo(cx + cabL + L * 1.6, yb - L * .5); c.lineTo(cx + cabL + L * 1.6, yb + L * .1); c.closePath(); c.fill(); }
+  for (const f of [.1, .2, .8, .9]) wheel(c, x + Dk * f, yb - r, r, t, o.spin);
+  wheel(c, cx + cabL * .25, yb - r, r, t, o.spin); wheel(c, cx + cabL * .78, yb - r, r, t, o.spin);
+  return Dk + cabL + L * .06;
+}
+function figure(c, x, yb, s, lit) {
+  c.fillStyle = '#121317';
+  c.fillRect(x - s * .09, yb - s * .45, s * .07, s * .45); c.fillRect(x + s * .02, yb - s * .45, s * .07, s * .45);
+  rr(c, x - s * .12, yb - s * .9, s * .24, s * .5, s * .06); c.fill();
+  c.beginPath(); c.arc(x, yb - s, s * .1, 0, 7); c.fill();
+  if (lit) { c.fillStyle = lit; c.fillRect(x - s * .12, yb - s * .88, s * .02, s * .44); }
+}
+function hills(c, w, h, base, amp, speed, t, col, ph) {
+  c.fillStyle = col; c.beginPath(); c.moveTo(0, h);
+  for (let x = 0; x <= w + 8; x += 8) { const u = x + t * speed; c.lineTo(x, h * base + Math.sin(u * .011 + ph) * h * amp + Math.sin(u * .029 + ph * 2) * h * amp * .45); }
+  c.lineTo(w, h); c.closePath(); c.fill();
+}
+const OTHERS = ['#6d737a', '#e3e1dc', '#26282c', '#8f969c', '#5b2b2e', '#2d4058', '#c7c2b3'];
+
+const SCENES = {
+  road(c, w, h, t, d, S, sd) {
+    skyFill(c, w, h, S, .7);
+    if (d.sky === 'night') stars(c, w, h, sd);
+    if (S.sun) sun(c, w * .76, h * .5, h * .05, S.sun);
+    hills(c, w, h, .56, .05, 12, t, S.hill, sd.ph);
+    hills(c, w, h, .64, .035, 45, t, 'rgba(0,0,0,.32)', sd.ph + 2);
+    c.fillStyle = S.ground; c.fillRect(0, h * .68, w, h * .32);
+    c.fillStyle = '#1c1e21'; c.fillRect(0, h * .74, w, h * .17);
+    c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(0, h * .74, w, 1.5);
+    const dash = h * .12, off = (t * 380) % (dash * 2);
+    c.fillStyle = d.sky === 'night' ? 'rgba(255,255,255,.45)' : 'rgba(255,255,255,.7)';
+    for (let x = -off; x < w; x += dash * 2) c.fillRect(x, h * .865, dash, Math.max(2, h * .008));
+    const sp = h * .9, poff = (t * 240) % sp;
+    c.strokeStyle = 'rgba(10,10,12,.75)'; c.lineWidth = 2;
+    for (let x = -poff; x < w + sp; x += sp) { c.beginPath(); c.moveTo(x, h * .72); c.lineTo(x, h * .32); c.moveTo(x - 10, h * .35); c.lineTo(x + 10, h * .35); c.stroke(); c.beginPath(); c.moveTo(x, h * .35); c.quadraticCurveTo(x + sp / 2, h * .41, x + sp, h * .35); c.lineWidth = 1; c.stroke(); c.lineWidth = 2; }
+    const L = h * .2, bob = Math.sin(t * 13) * h * .002;
+    const x = w * .5 - L * 1.45 + Math.sin(t * .35) * w * .03;
+    carrier(c, x, h * .845 + bob, L, [d.color, sd.o[0], sd.o[1], sd.o[2]], t, { spin: 9, lights: d.sky === 'night' || d.sky === 'dawn' });
+  },
+  ferry(c, w, h, t, d, S, sd) {
+    skyFill(c, w, h, S, .58);
+    const sea = c.createLinearGradient(0, h * .58, 0, h); sea.addColorStop(0, '#3a4a55'); sea.addColorStop(1, '#141e26'); c.fillStyle = sea; c.fillRect(0, h * .58, w, h * .42);
+    c.fillStyle = 'rgba(30,36,44,.8)'; rr(c, w * .06, h * .545, w * .12, h * .035, 2); c.fill(); c.fillRect(w * .13, h * .52, w * .03, h * .03);
+    for (let i = 0; i < 7; i++) { c.strokeStyle = `rgba(255,255,255,${.05 + i * .015})`; c.lineWidth = 1; c.beginPath(); const y = h * (.61 + i * .058); for (let x = 0; x <= w; x += 10) c.lineTo(x, y + Math.sin(x * .03 + t * (.8 + i * .25) + i) * (1.5 + i * .5)); c.stroke(); }
+    const bobY = Math.sin(t * .7) * h * .006, x0 = w * .44, yT = h * .3 + bobY, yW = h * .66 + bobY;
+    c.fillStyle = '#d8d6cf'; c.fillRect(w * .74, h * .15 + bobY, w * .3, yT - h * .15 - bobY);
+    c.fillStyle = '#39424b'; for (let i = 0; i < 9; i++) c.fillRect(w * .76 + i * w * .026, h * .2 + bobY, w * .012, h * .025);
+    c.fillStyle = '#262d36'; c.beginPath(); c.moveTo(x0, yT); c.lineTo(w * 1.05, yT); c.lineTo(w * 1.05, yW); c.lineTo(x0 + w * .03, yW); c.closePath(); c.fill();
+    c.fillStyle = '#8a2b2b'; c.fillRect(x0 + w * .02, yW - h * .04, w, h * .04);
+    c.fillStyle = 'rgba(255,255,255,.55)'; c.font = `600 ${Math.max(9, h * .045)}px ${getComputedStyle(document.body).getPropertyValue('--display') || 'sans-serif'}`; c.fillText('BREMERHAVEN · POTI', x0 + w * .16, yT + h * .09);
+    const doorX = x0, doorTop = yT + h * .12, doorBot = yT + h * .31;
+    const inside = c.createLinearGradient(doorX, 0, doorX + w * .1, 0); inside.addColorStop(0, '#6b5230'); inside.addColorStop(1, '#0b0e12'); c.fillStyle = inside; c.fillRect(doorX, doorTop, w * .1, doorBot - doorTop);
+    const qy = h * .66;
+    c.fillStyle = '#3b3e40'; c.fillRect(0, qy, w * .3, h - qy); c.fillStyle = '#d1a53a'; c.fillRect(0, qy, w * .3, 2);
+    c.fillStyle = '#1c1f22'; c.fillRect(w * .05, qy - h * .025, h * .03, h * .025);
+    c.strokeStyle = '#55595c'; c.lineWidth = Math.max(3, h * .014); c.beginPath(); c.moveTo(w * .28, qy); c.lineTo(doorX + 2, doorBot); c.stroke();
+    const L = h * .22, p = (t % 8) / 8;
+    const A = [-L, qy], B = [w * .28, qy], C = [doorX + L * 1.3, doorBot + (doorBot - qy) / (doorX - w * .28) * L * 1.3];
+    let cx, cy, ang = 0;
+    if (p < .5) { const k = p / .5; cx = A[0] + (B[0] - A[0]) * k; cy = qy; }
+    else { const k = (p - .5) / .5; cx = B[0] + (C[0] - B[0]) * k; cy = B[1] + (C[1] - B[1]) * k; ang = Math.atan2(C[1] - B[1], C[0] - B[0]); }
+    c.save(); c.beginPath(); c.rect(0, 0, doorX + 2, h); c.clip();
+    c.translate(cx, cy); c.rotate(ang); car(c, -L / 2, 0, L, d.color, { t, spin: 6 }); c.restore();
+    c.strokeStyle = 'rgba(20,20,24,.7)'; c.lineWidth = 1.2;
+    for (const g of sd.gulls) { const gx = ((g[0] * w + t * g[2] * 30) % (w + 40)) - 20, gy = g[1] * h * .4 + Math.sin(t * 2 + g[0] * 9) * 3, s = 5 + g[2] * 3, f = Math.sin(t * 6 + g[0] * 20) * 2; c.beginPath(); c.moveTo(gx - s, gy - f); c.quadraticCurveTo(gx - s / 2, gy - s / 2, gx, gy); c.quadraticCurveTo(gx + s / 2, gy - s / 2, gx + s, gy - f); c.stroke(); }
+  },
+  border(c, w, h, t, d, S, sd) {
+    skyFill(c, w, h, S, .62);
+    sun(c, w * .2, h * .16, h * .04, S.sun);
+    c.fillStyle = '#6e7f8f'; c.beginPath(); c.moveTo(0, h * .6);
+    for (const m of sd.peaks) c.lineTo(m[0] * w, h * m[1]);
+    c.lineTo(w, h * .6); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(245,248,250,.9)';
+    for (let i = 1; i < sd.peaks.length - 1; i++) { const [px, py] = sd.peaks[i]; if (py > .36) continue; const X = px * w, Y = py * h, dh = h * .05; c.beginPath(); c.moveTo(X, Y); c.lineTo(X - dh * .9, Y + dh); c.lineTo(X + dh * .9, Y + dh); c.closePath(); c.fill(); }
+    hills(c, w, h, .62, .02, 0, 0, '#556b55', sd.ph);
+    c.fillStyle = S.ground; c.fillRect(0, h * .7, w, h * .3);
+    c.fillStyle = '#2a2c2f'; c.fillRect(0, h * .75, w, h * .15);
+    c.fillStyle = '#e6e1d6'; c.fillRect(w * .5, h * .32, w * .5, h * .06);
+    c.fillStyle = '#b3342f'; c.fillRect(w * .5, h * .38, w * .5, h * .012);
+    c.fillStyle = '#9ea3a6'; c.fillRect(w * .52, h * .39, w * .008, h * .36); c.fillRect(w * .96, h * .39, w * .008, h * .36);
+    c.fillStyle = '#1b1e22'; c.font = `600 ${Math.max(9, h * .038)}px "Barlow Condensed", sans-serif`; c.fillText(d.checkpoint, w * .54, h * .365);
+    c.fillStyle = '#cfcac0'; c.fillRect(w * .68, h * .5, w * .1, h * .25); c.fillStyle = 'rgba(30,40,50,.8)'; c.fillRect(w * .695, h * .54, w * .07, h * .07);
+    const fx = w * .88, ft = h * .1, fl = w * .09, fh = h * .1;
+    c.fillStyle = '#9ea3a6'; c.fillRect(fx - 1.5, ft, 3, h * .22);
+    for (let i = 0; i < 3; i++) { c.fillStyle = d.flag[i]; c.beginPath(); for (let k = 0; k <= 12; k++) { const u = k / 12, wv = Math.sin(u * 5 - t * 4) * fh * .12 * u; c.lineTo(fx + u * fl, ft + fh * i / 3 + wv); } for (let k = 12; k >= 0; k--) { const u = k / 12, wv = Math.sin(u * 5 - t * 4) * fh * .12 * u; c.lineTo(fx + u * fl, ft + fh * (i + 1) / 3 + wv); } c.fill(); }
+    const cyc = t % 10;
+    let arm = 0; if (cyc > 4 && cyc < 5) arm = cyc - 4; else if (cyc >= 5 && cyc < 8) arm = 1; else if (cyc >= 8 && cyc < 9) arm = 9 - cyc;
+    const L = h * .17, TW = L * 2.9, stopX = w * .56 - TW - L * .1;
+    let tx; if (cyc < 4) { const k = cyc / 4; tx = -TW + (stopX + TW) * (1 - (1 - k) ** 2); } else if (cyc < 5) tx = stopX; else if (cyc < 9.6) { const k = (cyc - 5) / 4.6; tx = stopX + (w + 40 - stopX) * k * k; } else tx = w + 60;
+    const moving = !(cyc >= 4 && cyc < 5);
+    carrier(c, tx, h * .86, L, [d.color, sd.o[0], sd.o[1], sd.o[2]], t, { spin: moving ? 8 : 0, cab: '#e2ddd1' });
+    const pvx = w * .57, pvy = h * .78;
+    c.fillStyle = '#2b2e31'; c.fillRect(pvx - 4, pvy - h * .02, 8, h * .1);
+    c.save(); c.translate(pvx, pvy); c.rotate(-arm * Math.PI * .45);
+    const al = w * .2; for (let i = 0; i < 8; i++) { c.fillStyle = i % 2 ? '#f2f2ee' : '#c8322c'; c.fillRect(i * al / 8, -3, al / 8, 6); }
+    c.restore();
+  },
+  customs(c, w, h, t, d, S, sd) {
+    skyFill(c, w, h, S, .58); stars(c, w, h, sd);
+    c.strokeStyle = 'rgba(160,170,190,.28)'; c.lineWidth = 1;
+    for (let x = 0; x < w; x += 7) { c.beginPath(); c.moveTo(x, h * .5); c.lineTo(x, h * .6); c.stroke(); }
+    c.beginPath(); c.moveTo(0, h * .5); c.lineTo(w, h * .5); c.stroke();
+    c.fillStyle = '#15181c'; c.fillRect(0, h * .58, w, h * .42);
+    c.strokeStyle = 'rgba(240,210,120,.18)'; for (let i = -4; i < 20; i++) { c.beginPath(); c.moveTo(i * w * .08, h * .93); c.lineTo(i * w * .08 + w * .05, h * .74); c.stroke(); }
+    const Lb = h * .13; sd.o.forEach((col, i) => car(c, i * Lb * 1.12 - Lb * .3, h * .62, Lb, col));
+    const Lm = h * .17; sd.o.slice().reverse().forEach((col, i) => car(c, i * Lm * 1.18 + Lm * .2, h * .71, Lm, col));
+    c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(0, h * .58, w, h * .16);
+    const L = h * .34, carX = w * .5 - L / 2, yb = h * .92;
+    car(c, carX, yb, L, d.color);
+    for (const px of [w * .1, w * .9]) {
+      c.fillStyle = '#3a3f45'; c.fillRect(px - 2, h * .14, 4, h * .5);
+      const flick = .92 + Math.sin(t * 23 + px) * .04;
+      const g = c.createLinearGradient(0, h * .14, 0, h); g.addColorStop(0, `rgba(255,228,170,${.34 * flick})`); g.addColorStop(1, 'rgba(255,228,170,0)');
+      c.fillStyle = g; c.beginPath(); c.moveTo(px - 6, h * .14); c.lineTo(px + 6, h * .14); c.lineTo(px + w * .28, h); c.lineTo(px - w * .28, h); c.closePath(); c.fill();
+      c.fillStyle = '#fff4d8'; c.fillRect(px - 9, h * .13, 18, 5);
+    }
+    const gx = carX + L * .5 + Math.sin(t * .6) * L * .62;
+    const bg = c.createLinearGradient(gx - 14, 0, gx + 14, 0); bg.addColorStop(0, 'rgba(80,230,170,0)'); bg.addColorStop(.5, 'rgba(80,230,170,.42)'); bg.addColorStop(1, 'rgba(80,230,170,0)');
+    c.fillStyle = bg; c.fillRect(gx - 14, h * .52, 28, h * .41);
+    c.fillStyle = '#50585f'; c.fillRect(gx - 3, h * .5, 6, h * .43); c.fillRect(gx - 16, h * .5, 32, 6);
+    const ox = carX - L * .22; figure(c, ox, yb, h * .28, 'rgba(240,180,41,.9)');
+    const fa = Math.sin(t * .9) * .25;
+    const fg = c.createLinearGradient(ox, 0, ox + L * .7, 0); fg.addColorStop(0, 'rgba(255,255,230,.35)'); fg.addColorStop(1, 'rgba(255,255,230,0)');
+    c.fillStyle = fg; c.beginPath(); c.moveTo(ox + h * .03, yb - h * .17); c.lineTo(ox + L * .7, yb - h * .17 - L * (.18 + fa)); c.lineTo(ox + L * .7, yb - h * .17 + L * (.12 - fa)); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(80,230,170,.85)'; c.font = `500 ${Math.max(9, h * .032)}px "IBM Plex Mono", monospace`; c.fillText('X-RAY SCAN · BAY 4', w * .04, h * .97);
+  },
+  handover(c, w, h, t, d, S, sd) {
+    skyFill(c, w, h, S, .7);
+    if (S.sun) sun(c, w * .15, h * .58, h * .05, S.sun);
+    c.save(); const z = reduced ? 1 : 1 + .03 * Math.sin(t * .22); c.translate(w / 2, h / 2); c.scale(z, z); c.translate(-w / 2, -h / 2);
+    const night = d.sky === 'dusk';
+    for (const b of sd.bldg) {
+      const bx = b[0] * w, bw = b[1] * w, bh = b[2] * h, by = h * .7 - bh;
+      c.fillStyle = night ? '#16151f' : '#7e8c96'; c.fillRect(bx, by, bw, bh);
+      if (night) for (let yy = by + 6; yy < h * .68; yy += 9) for (let xx = bx + 4; xx < bx + bw - 4; xx += 8) { const k = Math.sin(xx * 12.9 + yy * 78.2) * 43758.5; if (k - Math.floor(k) > .62) { c.fillStyle = 'rgba(255,205,130,.75)'; c.fillRect(xx, yy, 3, 4); } }
+    }
+    c.fillStyle = night ? '#1d1a1f' : '#8e8a80'; c.fillRect(-w, h * .7, w * 3, h * .5);
+    c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(-w, h * .7, w * 3, 1);
+    c.globalAlpha = .55; carrier(c, w * .02 - h * .3, h * .76, h * .12, [sd.o[3], sd.o[0], sd.o[1], sd.o[2]], t, { cab: night ? '#5a5650' : '#d9d4c8' }); c.globalAlpha = 1;
+    const L = h * .5, carX = w * .5 - L * .72, yb = h * .9;
+    c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(carX + L / 2, yb, L * .55, h * .02, 0, 0, 7); c.fill();
+    car(c, carX, yb, L, d.color, { lights: night });
+    const f1 = carX + L + L * .16, f2 = f1 + L * .24, s = h * .34;
+    figure(c, f1, yb, s, night ? 'rgba(255,190,120,.6)' : null); figure(c, f2, yb, s * .96, night ? 'rgba(255,190,120,.6)' : null);
+    c.strokeStyle = '#121317'; c.lineWidth = s * .05; c.beginPath(); c.moveTo(f1 + s * .1, yb - s * .8); c.lineTo(f1 + L * .12, yb - s * .66); c.moveTo(f2 - s * .1, yb - s * .8); c.lineTo(f1 + L * .12, yb - s * .66); c.stroke();
+    const tw = (Math.sin(t * 3) + 1) / 2, kx = f1 + L * .12, ky = yb - s * .68;
+    c.fillStyle = `rgba(255,236,170,${.4 + tw * .6})`; c.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr_ = i % 2 ? s * .015 : s * (.04 + tw * .03); c.lineTo(kx + Math.cos(a) * rr_, ky + Math.sin(a) * rr_); } c.fill();
+    c.restore();
+    if (!reduced) { const sx = ((t * .18) % 1.6 - .3) * w; c.save(); c.globalCompositeOperation = 'lighter'; const g = c.createLinearGradient(sx - w * .1, 0, sx + w * .1, 0); g.addColorStop(0, 'rgba(255,220,180,0)'); g.addColorStop(.5, 'rgba(255,220,180,.07)'); g.addColorStop(1, 'rgba(255,220,180,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); c.restore(); }
+  },
+  inspection(c, w, h, t, d, S, sd) {
+    const wall = c.createLinearGradient(0, 0, 0, h * .72); wall.addColorStop(0, '#2c3339'); wall.addColorStop(1, '#1b1f23'); c.fillStyle = wall; c.fillRect(0, 0, w, h * .72);
+    c.strokeStyle = 'rgba(255,255,255,.04)'; c.lineWidth = 1; for (let x = 0; x < w; x += w / 14) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h * .72); c.stroke(); }
+    for (let i = 0; i < 3; i++) { const lx = w * (.2 + i * .3); c.fillStyle = '#eef3f5'; c.fillRect(lx - w * .08, h * .06, w * .16, 4); const g = c.createRadialGradient(lx, h * .07, 0, lx, h * .07, h * .4); g.addColorStop(0, 'rgba(230,240,245,.16)'); g.addColorStop(1, 'rgba(230,240,245,0)'); c.fillStyle = g; c.fillRect(lx - h * .4, 0, h * .8, h * .5); }
+    c.fillStyle = '#2d3135'; c.fillRect(0, h * .72, w, h * .28);
+    c.fillStyle = '#d1a53a'; c.fillRect(0, h * .72, w, 2);
+    const L = h * .56, carX = w * .5 - L / 2, yb = h * .76, H = L * .36;
+    c.fillStyle = '#44494e'; c.fillRect(carX + L * .08, yb, L * .84, h * .025); c.fillRect(carX + L * .3, yb, h * .03, h * .2); c.fillRect(carX + L * .68, yb, h * .03, h * .2);
+    c.save(); c.translate(0, h * .06); c.scale(1, -1); c.globalAlpha = .12; car(c, carX, -yb - h * .06 * 2 + h * .06 * 2 - h * .06, L, d.color); c.restore(); c.globalAlpha = 1;
+    car(c, carX, yb, L, d.color);
+    const k = reduced ? .62 : (t * .22) % 1, sx = carX - L * .1 + k * L * 1.2;
+    const g = c.createLinearGradient(sx - 30, 0, sx + 2, 0); g.addColorStop(0, 'rgba(240,180,41,0)'); g.addColorStop(1, 'rgba(240,180,41,.3)');
+    c.fillStyle = g; c.fillRect(sx - 30, yb - H * 1.5, 32, H * 1.6);
+    c.fillStyle = '#f0b429'; c.fillRect(sx, yb - H * 1.5, 2, H * 1.6);
+    const pts = [[.03, .45, 'Paint 118 µm'], [.2, .08, 'Tread 6.4 mm'], [.4, .82, 'Glass · no chips'], [.8, .08, 'Disc 28.1 mm'], [.93, .45, 'Paint 121 µm']];
+    c.font = `500 ${Math.max(9, h * .033)}px "IBM Plex Mono", monospace`;
+    pts.forEach(([fx, fy, lab], i) => {
+      const px = carX + fx * L, py = yb - fy * H;
+      if (sx < px) return;
+      c.fillStyle = '#f0b429'; c.beginPath(); c.arc(px, py, 3.5, 0, 7); c.fill();
+      const ly = yb - H - h * (.08 + (i % 2) * .08), tw = c.measureText(lab).width + 12, lx = Math.min(Math.max(4, px - tw / 2), w - tw - 4);
+      c.strokeStyle = 'rgba(240,180,41,.6)'; c.lineWidth = 1; c.beginPath(); c.moveTo(px, py); c.lineTo(px, ly + 10); c.stroke();
+      c.fillStyle = 'rgba(12,15,17,.85)'; c.fillRect(lx, ly - 8, tw, 18); c.fillStyle = '#ebe9e3'; c.fillText(lab, lx + 6, ly + 5);
+    });
+  },
+};
+function seedFor(d) {
+  const r = rng(d.id);
+  return {
+    ph: r() * 6,
+    stars: Array.from({ length: 50 }, () => [r(), r(), r() > .85 ? 2 : 1]),
+    o: Array.from({ length: 7 }, () => OTHERS[Math.floor(r() * OTHERS.length)]),
+    gulls: Array.from({ length: 4 }, () => [r(), .2 + r() * .6, .5 + r()]),
+    peaks: (() => { const a = [[0, .5]]; for (let x = .06; x < 1; x += .07 + r() * .06) a.push([x, .26 + r() * .22]); a.push([1, .5]); return a; })(),
+    bldg: (() => { const a = []; let x = -.02; while (x < 1.02) { const bw = .05 + r() * .07; a.push([x, bw, .18 + r() * .38]); x += bw + .004; } return a; })(),
+  };
+}
+D.forEach(d => { d.seed = seedFor(d); d.offset = Math.floor(rng(d.id + 'x')() * 60); });
+
+function drawScene(view, t) {
+  const { cv, d } = view; const c = view.ctx;
+  const w = view.w, h = view.h; if (!w || !h) return;
+  c.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+  SCENES[d.scene](c, w, h, t + d.offset, d, SKY[d.sky], d.seed);
+  vignette(c, w, h);
+}
+function sizeView(view) {
+  if (!view.cv) return;
+  const r = view.cv.getBoundingClientRect();
+  view.dpr = Math.min(devicePixelRatio || 1, 1.75);
+  view.w = r.width; view.h = r.height;
+  view.cv.width = Math.round(r.width * view.dpr); view.cv.height = Math.round(r.height * view.dpr);
+}
+
+/* ================= sound ================= */
+let ac = null, brown = null, cur = null, soundId = null;
+function makeBrown() { const len = ac.sampleRate * 3, b = ac.createBuffer(1, len, ac.sampleRate), ch = b.getChannelData(0); let last = 0; for (let i = 0; i < len; i++) { const wn = Math.random() * 2 - 1; last = (last + .02 * wn) / 1.02; ch[i] = last * 3.5; } return b; }
+const MIX = {
+  road:       { lp: 520, n: .55, tones: [[48, 'sawtooth', .12, 170]], lfo: [.7, 3] },
+  ferry:      { lp: 750, n: .7,  tones: [[38, 'sine', .18]], swell: .12 },
+  border:     { lp: 320, n: .35, tones: [[62, 'sine', .07], [124, 'sine', .03]] },
+  customs:    { lp: 260, n: .3,  tones: [[50, 'sine', .06], [100, 'sine', .035]] },
+  handover:   { lp: 1400, n: .14, tones: [[196, 'sine', .04], [247, 'sine', .035], [294, 'sine', .03]], trem: .3 },
+  inspection: { lp: 900, n: .16, tones: [[120, 'sine', .05]] },
+};
+function stopSound() {
+  stopSynth();
+  soundId = null; syncSound();
+}
+function stopSynth() {
+  if (cur) { const { out, nodes } = cur; out.gain.cancelScheduledValues(ac.currentTime); out.gain.setTargetAtTime(0, ac.currentTime, .08); setTimeout(() => nodes.forEach(n => { try { n.stop(); } catch {} }), 500); cur = null; }
+}
+function startSound(id) {
+  stopSound();
+  if (typeof muteAds === 'function') muteAds();
+  soundId = id;
+  if (!byId[id].video) startSynth(id);
+  syncSound();
+}
+function startSynth(id) {
+  try {
+    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); brown = makeBrown(); }
+    if (ac.state === 'suspended') ac.resume();
+  } catch { return; }
+  const m = MIX[byId[id].scene], out = ac.createGain(), nodes = [];
+  out.gain.value = 0; out.connect(ac.destination); out.gain.setTargetAtTime(.8, ac.currentTime, .15);
+  const src = ac.createBufferSource(); src.buffer = brown; src.loop = true;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = m.lp;
+  const ng = ac.createGain(); ng.gain.value = m.n; src.connect(lp).connect(ng).connect(out); src.start(); nodes.push(src);
+  if (m.swell) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = m.swell; lg.gain.value = m.n * .6; l.connect(lg).connect(ng.gain); l.start(); nodes.push(l); }
+  for (const [f, type, g, cut] of m.tones) {
+    const o = ac.createOscillator(); o.type = type; o.frequency.value = f; const og = ac.createGain(); og.gain.value = g;
+    if (cut) { const f2 = ac.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = cut; o.connect(f2).connect(og); } else o.connect(og);
+    og.connect(out); o.start(); nodes.push(o);
+    if (m.lfo) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = m.lfo[0]; lg.gain.value = m.lfo[1]; l.connect(lg).connect(o.frequency); l.start(); nodes.push(l); }
+    if (m.trem) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = m.trem + f / 1000; lg.gain.value = g * .6; l.connect(lg).connect(og.gain); l.start(); nodes.push(l); }
+  }
+  cur = { out, nodes };
+}
+function toggleSound(id) { soundId === id ? stopSound() : startSound(id); }
+const ICON_OFF = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3z" fill="currentColor"/><path d="m13 8 4 4m0-4-4 4" stroke="currentColor" stroke-width="1.6"/></svg>';
+const ICON_ON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3z" fill="currentColor"/><path d="M13 7.5a3.5 3.5 0 0 1 0 5M15 5.5a6.5 6.5 0 0 1 0 9" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>';
+
+/* ================= wall ================= */
+const wall = document.getElementById('wall');
+const views = [];
+const state = { country: 'all', status: 'all', focus: null };
+function capStatus(d) {
+  return { live: `Live · ${d.days}`, transit: `${d.badge} · ${d.days}`, customs: `${d.badge} · ${d.days}`, delivered: `${d.badge} · ${d.days}`, inspection: `${d.badge} · ${d.days}` }[d.status];
+}
+D.forEach(d => {
+  const el = document.createElement('div');
+  el.className = `tile ${d.span}`; el.tabIndex = 0; el.setAttribute('role', 'button'); el.dataset.id = d.id;
+  el.setAttribute('aria-label', `${d.from} to ${d.to}, ${d.car}. ${STATUS_LABEL[d.status]}. Open delivery.`);
+  const media = d.video ? `<video src="${d.video}" poster="${d.poster}" muted loop playsinline autoplay preload="metadata" aria-hidden="true"></video>` : '<canvas aria-hidden="true"></canvas>';
+  el.innerHTML = `${media}<div class="shade"></div>
+    <div class="top"><span class="badge ${d.status}">${d.badge}</span><span class="tc"></span></div>
+    <div class="cap">${d.video ? '<span class="real">Real footage</span>' : ''}<b>${d.from} → ${d.to}</b><span class="car">${d.car} · ${d.year}</span><span class="status">${capStatus(d)}</span></div>
+    ${d.docs ? `<button class="docbtn" type="button" aria-label="Request documents for the ${d.car}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6.5L15 6v11.5H5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg><span>Request documents</span></button>` : ''}
+    <button class="snd" type="button" aria-label="Unmute ${d.from} to ${d.to}">${ICON_OFF}</button>
+    ${d.clip ? '<div class="progress"><i></i></div>' : ''}`;
+  wall.appendChild(el);
+  const cv = el.querySelector('canvas');
+  const v = { el, cv, ctx: cv && cv.getContext('2d'), video: el.querySelector('video'), d, visible: false, tc: el.querySelector('.tc'), bar: el.querySelector('.progress i'), snd: el.querySelector('.snd') };
+  views.push(v);
+  el.addEventListener('click', e => { if (e.target.closest('.snd')) return; if (e.target.closest('.docbtn')) { e.stopPropagation(); openDocs(d.id, e.target.closest('.docbtn')); return; } openFocus(d.id, el); });
+  el.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); openFocus(d.id, el); } });
+  v.snd.addEventListener('click', e => { e.stopPropagation(); toggleSound(d.id); });
+});
+const emptyEl = document.createElement('div'); emptyEl.className = 'empty'; emptyEl.hidden = true; emptyEl.textContent = 'No deliveries match these filters right now. Clear one to see more.'; wall.appendChild(emptyEl);
+
+const io = new IntersectionObserver(es => es.forEach(e => { const v = views.find(v => v.el === e.target); v.visible = e.isIntersecting; if (v.video) { if (v.visible && !reduced) v.video.play().catch(() => {}); else v.video.pause(); } }), { rootMargin: '100px' });
+views.forEach(v => io.observe(v.el));
+const ro = new ResizeObserver(es => es.forEach(e => { const v = views.find(v => v.el === e.target) || (fview.cv.parentElement === e.target ? fview : null); if (v) { sizeView(v); if (reduced && v.cv && (v !== fview || !fview.d?.video)) drawScene(v, 12); } }));
+views.forEach(v => ro.observe(v.el));
+
+function syncSound() {
+  const fv = document.getElementById('fvideo');
+  views.forEach(v => { if (!v.video) return; const on = soundId === v.d.id && state.focus !== v.d.id; v.video.muted = !on; if (on) v.video.play().catch(() => {}); });
+  if (fview.d && fview.d.video) { fv.muted = !(soundId === state.focus); }
+  views.forEach(v => { const on = soundId === v.d.id; v.snd.classList.toggle('on', on); v.snd.innerHTML = on ? ICON_ON : ICON_OFF; v.snd.setAttribute('aria-label', `${on ? 'Mute' : 'Unmute'} ${v.d.from} to ${v.d.to}`); v.el.classList.toggle('on-air', on); });
+  const fb = document.getElementById('f-snd');
+  if (state.focus) { const on = soundId === state.focus; fb.classList.toggle('on', on); fb.innerHTML = (on ? ICON_ON : ICON_OFF) + `<span>${on ? 'Mute' : 'Unmute'}</span>`; }
+}
+
+/* ================= filters ================= */
+const countries = ['all', ...new Set(D.map(d => d.country))];
+const statuses = ['all', 'live', 'transit', 'customs', 'delivered', 'inspection'];
+state.docs = false;
+const filtersEl = document.getElementById('filters');
+function renderFilters() {
+  const cnt = (k, v) => D.filter(d => v === 'all' || d[k] === v).length;
+  filtersEl.innerHTML = `
+    <div class="fgroup" role="group" aria-label="Destination"><span>Destination</span>${countries.map(c => `<button type="button" class="chip" data-k="country" data-v="${c}" aria-pressed="${state.country === c}">${c === 'all' ? 'Everywhere' : c}<i>${cnt('country', c)}</i></button>`).join('')}</div>
+    <div class="fgroup" role="group" aria-label="Status"><span>Status</span>${statuses.map(s => `<button type="button" class="chip" data-k="status" data-v="${s}" aria-pressed="${state.status === s}">${s === 'all' ? 'Any' : STATUS_LABEL[s]}<i>${cnt('status', s)}</i></button>`).join('')}</div>
+    <div class="fgroup"><button type="button" class="chip" data-k="docs" aria-pressed="${state.docs}">Documents available<i>${D.filter(d => d.docs).length}</i></button></div>`;
+}
+filtersEl.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; if (b.dataset.k === 'docs') state.docs = !state.docs; else state[b.dataset.k] = b.dataset.v; renderFilters(); applyFilters(); });
+function shown() { return D.filter(d => (state.country === 'all' || d.country === state.country) && (state.status === 'all' || d.status === state.status) && (!state.docs || d.docs)); }
+function applyFilters() {
+  const ids = new Set(shown().map(d => d.id));
+  views.forEach(v => { v.el.hidden = !ids.has(v.d.id); if (v.el.hidden && soundId === v.d.id) stopSound(); });
+  emptyEl.hidden = ids.size > 0;
+  document.querySelectorAll('#map .route').forEach(g => g.style.opacity = ids.has(g.dataset.id) ? 1 : .12);
+}
+renderFilters();
+const moving = D.filter(d => d.status === 'live' || d.status === 'transit').length;
+document.getElementById('tally').innerHTML = `<span><span class="dot"></span><b>${D.filter(d => d.status === 'live').length}</b> filming live</span><span><b>${moving}</b> on the move</span><span><b>${D.length}</b> on the wall</span><span><b>214</b> delivered in 2026 <span style="opacity:.6">(example)</span></span>`;
+
+/* ================= clocks ================= */
+function hhmmss(s) { const m = Math.floor(s / 60), x = Math.floor(s % 60); return `${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}`; }
+function clockFor(d) {
+  const el = (performance.now() - T0) / 1000;
+  if (!d.clip) { const n = new Date(Date.now() + (d.tz * 60 + new Date().getTimezoneOffset()) * 60000); return { txt: `${n.toTimeString().slice(0, 8)} ${d.tzn}`, p: null }; }
+  const vid = d.video && (state.focus === d.id ? document.getElementById('fvideo') : views.find(v => v.d.id === d.id).video);
+  if (vid && vid.duration) return { txt: `REC ${hhmmss(vid.currentTime)} / ${hhmmss(vid.duration)}`, p: vid.currentTime / vid.duration };
+  const pos = (el + d.offset) % d.clip; return { txt: `REC ${hhmmss(pos)} / ${hhmmss(d.clip)}`, p: pos / d.clip };
+}
+function tick() {
+  views.forEach(v => { const k = clockFor(v.d); v.tc.textContent = k.txt; if (v.bar) v.bar.style.width = (k.p * 100).toFixed(1) + '%'; });
+  if (state.focus) document.getElementById('f-tc').textContent = clockFor(byId[state.focus]).txt;
+}
+setInterval(tick, 500); tick();
+
+/* ================= focus ================= */
+const focusEl = document.getElementById('focus'), stage = document.getElementById('stage'), side = document.getElementById('fside');
+const fview = { cv: document.getElementById('fcanvas'), ctx: document.getElementById('fcanvas').getContext('2d'), d: null };
+ro.observe(stage);
+let lastTrigger = null;
+function renderSide(d) {
+  const deliveredOrCustoms = d.status === 'delivered' ? 'paid' : d.status === 'customs' ? 'due' : '';
+  const payTxt = d.status === 'delivered' ? `<b>Paid in full.</b> The final 90% was paid when the car cleared customs in ${d.to}.`
+    : d.status === 'customs' ? `<b>90% is due now.</b> The car has reached customs in ${d.to}. The handover happens after payment.`
+    : `<b>10% paid.</b> The other 90% is due when the car clears customs in ${d.to}.`;
+  side.innerHTML = `
+    <div><div class="route">${d.from}, ${d.fcc} → ${d.to}, ${d.tcc}</div><h2 id="f-title">${d.car}</h2></div>
+    <dl class="specs">
+      <dt>Year</dt><dd>${d.year}</dd><dt>Mileage</dt><dd>${d.km}</dd><dt>VIN</dt><dd class="mono">${d.vin}</dd>
+      <dt>Route</dt><dd>${d.ship}</dd><dt>Progress</dt><dd>${d.days}</dd><dt>Landed cost</dt><dd>${d.cost} <span style="color:var(--muted)">incl. duty &amp; VAT</span></dd>
+    </dl>
+    <div><p class="label">Journey</p><ol class="tl">${STAGES.map((s, i) => { const done = i < d.stage || (i === d.stage && d.status === 'delivered'); const now = i === d.stage && d.status !== 'delivered'; return `<li class="${done ? 'done' : now ? 'now' : ''}"><span></span><span>${s}</span><time>${d.dates[i]}</time></li>`; }).join('')}</ol></div>
+    <div class="pay"><p class="label" style="margin:0">Payment</p><div class="paybar"><i class="paid"></i><i class="${deliveredOrCustoms}"></i></div><p>${payTxt}</p></div>
+    ${d.docs ? `<div class="docpanel">
+      <div><span class="verified">✓ From the seller · ${d.ref}</span></div>
+      ${d.docs.map(x => `<div class="docrow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6.5L15 6v11.5H5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg><span><b>${x.title}</b><small>${x.meta}</small></span></div>`).join('')}
+      ${d.facts ? `<dl class="facts">${d.facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>` : ''}
+      <button type="button" class="cta" id="f-docs2">Request documents</button>
+    </div>` : ''}
+    ${d.photos ? `<div><p class="label">Photos from the dealer · ${d.photos.length}</p><div class="gallery">${d.photos.map((src, i) => `<button type="button" data-src="${src}" aria-label="Open photo ${i + 1}"><img src="${src}" alt="" loading="lazy"></button>`).join('')}</div></div>` : ''}
+    ${d.quote ? `<blockquote class="quote">“${d.quote[0]}”<footer>${d.quote[1]}</footer></blockquote>` : ''}
+    <div class="actions"><button type="button" class="cta" id="f-follow">Follow this delivery</button><button type="button" class="ghost">Find a car like this</button></div>`;
+  side.scrollTop = 0;
+  const fd2 = document.getElementById('f-docs2'); if (fd2) fd2.addEventListener('click', () => openDocs(d.id, fd2));
+  side.querySelectorAll('.gallery button').forEach(b => b.addEventListener('click', () => { const im = document.getElementById('fphoto'); im.src = b.dataset.src; im.alt = `${d.car}, dealer photo`; im.hidden = false; }));
+  document.getElementById('f-follow').addEventListener('click', e => { const b = e.currentTarget; const on = b.dataset.on !== '1'; b.dataset.on = on ? '1' : ''; b.textContent = on ? 'Following. You’ll get each update.' : 'Follow this delivery'; });
+}
+function openFocus(id, fromEl) {
+  const d = byId[id]; const wasOpen = !!state.focus;
+  state.focus = id; fview.d = d; lastTrigger = fromEl || lastTrigger;
+  const b = document.getElementById('f-badge'); b.className = `badge ${d.status}`; b.textContent = d.badge;
+  renderSide(d);
+  document.getElementById('f-docs').hidden = !d.docs;
+  focusEl.hidden = false; document.body.style.overflow = 'hidden';
+  const fv = document.getElementById('fvideo'), fbg = document.getElementById('fbg');
+  document.getElementById('fphoto').hidden = true;
+  fview.cv.hidden = !!d.video; fv.hidden = !d.video; fbg.hidden = !d.video;
+  if (d.video) {
+    const tv = views.find(v => v.d.id === id).video;
+    fbg.style.backgroundImage = `url("${d.poster}")`;
+    if (!fv.src.endsWith(d.video)) { fv.src = d.video; fv.poster = d.poster; }
+    try { fv.currentTime = tv.currentTime || 0; } catch {}
+    fv.play().catch(() => {});
+  } else fv.pause();
+  sizeView(fview);
+  if (!wasOpen && fromEl && !reduced) {
+    const r = fromEl.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    stage.style.transition = 'none'; stage.style.transformOrigin = '0 0';
+    stage.style.transform = `translate(${r.left - s.left}px, ${r.top - s.top}px) scale(${r.width / s.width}, ${r.height / s.height})`;
+    stage.getBoundingClientRect();
+    stage.style.transition = 'transform .45s cubic-bezier(.2,.8,.2,1)'; stage.style.transform = 'none';
+  }
+  startSound(id);
+  document.querySelectorAll('#map .arc').forEach(a => a.classList.toggle('hl', a.dataset.id === id));
+  tick(); if (reduced && !d.video) drawScene(fview, 12);
+  if (!wasOpen) document.getElementById('f-close').focus();
+}
+function closeFocus() {
+  if (!state.focus) return;
+  if (soundId === state.focus) stopSound();
+  document.getElementById('fvideo').pause();
+  state.focus = null; focusEl.hidden = true; document.body.style.overflow = '';
+  document.querySelectorAll('#map .arc.hl').forEach(a => a.classList.remove('hl'));
+  if (lastTrigger && document.contains(lastTrigger)) lastTrigger.focus();
+}
+function step(dir) { const list = shown().length ? shown() : D; const i = list.findIndex(d => d.id === state.focus); openFocus(list[(i + dir + list.length) % list.length].id); }
+document.getElementById('f-close').addEventListener('click', () => { const im = document.getElementById('fphoto'); if (!im.hidden) { im.hidden = true; return; } closeFocus(); });
+document.getElementById('fphoto').addEventListener('click', e => { e.currentTarget.hidden = true; });
+document.getElementById('f-prev').addEventListener('click', () => step(-1));
+document.getElementById('f-docs').addEventListener('click', e => openDocs(state.focus, e.currentTarget));
+document.getElementById('f-next').addEventListener('click', () => step(1));
+document.getElementById('f-snd').addEventListener('click', () => toggleSound(state.focus));
+focusEl.addEventListener('click', e => { if (e.target === focusEl) closeFocus(); });
+document.addEventListener('keydown', e => {
+  if (!docModal.hidden) { if (e.key === 'Escape') closeDocs(); return; }
+  if (!state.focus) return;
+  if (e.key === 'Escape') closeFocus();
+  else if (e.key === 'ArrowRight') step(1);
+  else if (e.key === 'ArrowLeft') step(-1);
+  else if (e.key.toLowerCase() === 'm' && !e.metaKey && !e.ctrlKey) toggleSound(state.focus);
+});
+
+/* ================= documents on request ================= */
+const COLLECT = false; // set to true by build-site.sh for the live website
+const docModal = document.getElementById('docmodal'), dmForm = document.getElementById('dm-form'), dmDone = document.getElementById('dm-done');
+const dmEmail = document.getElementById('dm-email'), dmErr = document.getElementById('dm-err');
+let dmCar = null, dmReturn = null;
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+function openDocs(id, from) {
+  const d = byId[id]; if (!d || !d.docs) return;
+  dmCar = d; dmReturn = from || document.activeElement;
+  if (state.focus) { const fv = document.getElementById('fvideo'); if (!fv.muted) stopSound(); }
+  document.getElementById('dm-ref').textContent = `${d.ref} · ${d.car}`;
+  document.getElementById('dm-list').innerHTML = d.docs.map((x, i) => `<label class="pick"><input type="checkbox" name="doc" value="${i}" checked><span>${x.title}<small>${x.meta}. ${x.what}</small></span></label>`).join('');
+  dmEmail.value = store.get('tmlg-email') || ''; dmEmail.removeAttribute('aria-invalid'); dmErr.textContent = '';
+  dmForm.hidden = false; dmDone.hidden = true; docModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  dmEmail.focus();
+}
+function closeDocs() {
+  docModal.hidden = true;
+  if (!state.focus) document.body.style.overflow = '';
+  if (dmReturn && document.contains(dmReturn)) dmReturn.focus();
+}
+docModal.addEventListener('click', e => { if (e.target === docModal || e.target.closest('[data-close]')) closeDocs(); });
+dmForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const email = dmEmail.value.trim();
+  const picked = [...dmForm.querySelectorAll('input[name="doc"]:checked')].map(i => dmCar.docs[+i.value]);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { dmEmail.setAttribute('aria-invalid', 'true'); dmErr.textContent = 'Enter a full email address, like name@example.com.'; dmEmail.focus(); return; }
+  if (!picked.length) { dmErr.textContent = 'Tick at least one document.'; return; }
+  dmEmail.removeAttribute('aria-invalid'); dmErr.textContent = '';
+  store.set('tmlg-email', email);
+  document.getElementById('dm-car').value = `${dmCar.ref} · ${dmCar.car}`;
+  document.getElementById('dm-docs').value = picked.map(x => x.name).join(', ');
+  // On the live site (Netlify) each request lands in the dashboard. Anywhere else this is skipped.
+  if (COLLECT) fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(new FormData(dmForm)).toString() }).catch(() => {});
+  document.getElementById('dm-for').textContent = `Requested for ${email}. Download them now or open them in a new tab.`;
+  const ready = document.getElementById('dm-ready');
+  ready.innerHTML = picked.map((x, i) => `<div class="readyrow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6.5L15 6v11.5H5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg><span>${x.title}<small style="display:block;color:var(--muted);font-size:12px">${x.meta}</small></span><span class="btns"><button type="button" class="cta" data-dl="${i}">Download</button><a class="ghost" href="${x.file}" target="_blank" rel="noopener">Open</a></span></div>`).join('');
+  ready.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => saveDoc(picked[+b.dataset.dl], b)));
+  const msg = `Hi TMLG! I got the documents for ${dmCar.car} (${dmCar.ref}) and have a question.`;
+  document.getElementById('dm-wa').href = 'https://wa.me/995595907136?text=' + encodeURIComponent(msg);
+  dmForm.hidden = true; dmDone.hidden = false;
+  dmDone.querySelector('.cta')?.focus();
+});
+async function saveDoc(x, btn) {
+  const label = btn.textContent;
+  const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+  if (!dl) { const a = document.createElement('a'); a.href = x.file; a.download = x.name; document.body.appendChild(a); a.click(); a.remove(); btn.textContent = 'Downloaded'; return; }
+  try {
+    btn.textContent = 'Preparing…';
+    const blob = await (await fetch(x.file)).blob();
+    await dl.save({ filename: x.name, data: blob });
+    btn.textContent = 'Saved';
+  } catch (err) {
+    btn.textContent = label;
+    if (!err || !['declined', 'rate_limited'].includes(err.code)) window.open(x.file, '_blank', 'noopener');
+  }
+}
+
+/* ================= map ================= */
+const map = document.getElementById('map'), hint = document.getElementById('maphint');
+const pj = ([lon, lat]) => [30 + lon * 10.2, 20 + (57 - lat) * 14];
+const poly = pts => 'M' + pts.map(p => pj(p).map(n => n.toFixed(1)).join(',')).join('L') + 'Z';
+const BLACK = [[28,41.4],[28.6,43.5],[29.7,45.3],[31.2,46.6],[33.5,45.3],[36.5,45.3],[38.3,46.9],[39.6,44.8],[41.6,42.3],[41.4,41.3],[38.5,40.9],[35,42],[31.5,41.1]];
+const CASP = [[47,45.2],[49.8,46.7],[53,45.8],[51.3,44.5],[52.8,41.8],[54,40],[53.9,37.4],[51.2,36.7],[49,37.8],[49.5,40.3],[48.2,41.9],[47.2,43.4]];
+const NS = 'http://www.w3.org/2000/svg';
+let svg = '';
+for (let lon = 0; lon <= 80; lon += 10) { const [x] = pj([lon, 0]); svg += `<line x1="${x}" y1="10" x2="${x}" y2="320" stroke="#20282d" stroke-width="1"/>`; }
+for (let lat = 40; lat <= 55; lat += 5) { const [, y] = pj([0, lat]); svg += `<line x1="10" y1="${y}" x2="890" y2="${y}" stroke="#20282d" stroke-width="1"/><text x="14" y="${y - 4}" fill="#56616a" font-family="IBM Plex Mono, monospace" font-size="9">${lat}°N</text>`; }
+svg += `<path d="${poly(BLACK)}" fill="#172630" stroke="#2c4250"/><path d="${poly(CASP)}" fill="#172630" stroke="#2c4250"/>`;
+svg += `<text x="${pj([31.5, 43.6])[0]}" y="${pj([31.5, 43.6])[1]}" fill="#4d6878" font-size="10" font-style="italic" font-family="IBM Plex Sans, sans-serif">Black Sea</text>`;
+svg += `<text x="${pj([48.8, 43.6])[0]}" y="${pj([48.8, 43.6])[1]}" fill="#4d6878" font-size="10" font-style="italic" font-family="IBM Plex Sans, sans-serif" transform="rotate(-72 ${pj([48.8, 43.6]).join(' ')})">Caspian</text>`;
+D.forEach(d => {
+  const [x1, y1] = pj(P[d.from]), [x2, y2] = pj(P[d.to]);
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - Math.hypot(x2 - x1, y2 - y1) * .2;
+  const path = `M${x1.toFixed(1)},${y1.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+  const col = STATUS_COLOR[d.status];
+  let pos = '';
+  if (d.status !== 'delivered' && d.status !== 'inspection') {
+    const k = Math.min(.96, d.stage / 4.2), px = (1 - k) ** 2 * x1 + 2 * (1 - k) * k * mx + k * k * x2, py = (1 - k) ** 2 * y1 + 2 * (1 - k) * k * my + k * k * y2;
+    pos = `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="5" fill="${col}" stroke="#0c0f11" stroke-width="2">${d.status === 'live' && !reduced ? '<animate attributeName="r" values="4;7;4" dur="1.6s" repeatCount="indefinite"/>' : ''}</circle>`;
+  }
+  svg += `<g class="route" data-id="${d.id}"><path class="arc" data-id="${d.id}" d="${path}" stroke="${col}"/><path class="arc-hit" data-id="${d.id}" d="${path}"/>${pos}</g>`;
+});
+const LABELS = { Hungary:[6,-6,'start'], Hamburg:[-6,-6,'end'], Berlin:[6,-6,'start'], Antwerp:[-6,4,'end'], Munich:[6,12,'start'], Milan:[-6,12,'end'],
+  Tbilisi:[7,-4,'start'], Poti:[-6,-6,'end'], Batumi:[-6,12,'end'], Yerevan:[0,17,'middle'], Baku:[7,4,'start'], Almaty:[0,17,'middle'], Tashkent:[0,17,'middle'], Bishkek:[0,-9,'middle'] };
+const dests = new Set(D.map(d => d.to));
+Object.entries(P).forEach(([name, ll]) => {
+  const [x, y] = pj(ll), dest = dests.has(name);
+  svg += `<circle cx="${x}" cy="${y}" r="${dest ? 3.5 : 2.5}" fill="${dest ? '#ebe9e3' : '#8b949a'}"/>`;
+  const L = LABELS[name]; if (L) svg += `<text x="${x + L[0]}" y="${y + L[1]}" text-anchor="${L[2]}" fill="${dest ? '#ebe9e3' : '#8b949a'}" font-family="IBM Plex Sans, sans-serif" font-size="${dest ? 12 : 10.5}" font-weight="${dest ? 500 : 400}">${name}</text>`;
+});
+map.innerHTML = svg;
+map.addEventListener('mouseover', e => { const id = e.target.dataset?.id; if (!id) return; const d = byId[id]; hint.textContent = `${d.from} → ${d.to} · ${d.car} · ${STATUS_LABEL[d.status]} · ${d.days}`; document.querySelectorAll('#map .arc').forEach(a => a.classList.toggle('hl', a.dataset.id === id)); });
+map.addEventListener('mouseleave', () => { hint.textContent = 'Hover a route'; if (!state.focus) document.querySelectorAll('#map .arc.hl').forEach(a => a.classList.remove('hl')); });
+map.addEventListener('click', e => { const id = e.target.dataset?.id; if (id) openFocus(id, views.find(v => v.d.id === id).el); });
+
+/* ================= presenter + brand film ================= */
+/* Every spoken video lives here. Add a row for a new message, or a language to an existing one.
+   Files: media/<name>-<lang>.mp4 + .jpg poster. Missing languages fall back to English. */
+const LANGS = [
+  { k: 'ka', label: 'ქართული', name: 'Georgian' },
+  { k: 'en', label: 'English', name: 'English' },
+  { k: 'de', label: 'Deutsch', name: 'German' },
+  { k: 'ru', label: 'Русский', name: 'Russian' },
+];
+const TOPICS = [
+  { id: 'hello', title: 'Welcome', base: 'media/host', langs: ['ka', 'en', 'de', 'ru'] },
+  { id: 'msg2', title: 'Message 2', base: 'media/host2', langs: ['en', 'ru'] },
+  { id: 'sclass', title: 'S-Class showroom', base: 'media/film-sclass', langs: ['en'], single: true },
+];
+const hostV = document.getElementById('host-v'), hostPlay = document.getElementById('host-play');
+const filmV = document.getElementById('film-v');
+const langsEl = document.getElementById('host-langs'), topicsEl = document.getElementById('host-topics'), fbEl = document.getElementById('host-fallback');
+const player = { topic: 0, lang: 'ka' };
+function setAdButton(on) { hostPlay.classList.toggle('on', on); hostPlay.querySelector('span').textContent = on ? 'Mute' : 'Play with sound'; }
+function muteAds() { hostV.muted = true; hostV.loop = true; if (hostV.paused && !reduced) hostV.play().catch(() => {}); setAdButton(false); }
+function srcFor(t, lang) {
+  const use = t.langs.includes(lang) ? lang : t.langs.includes('en') ? 'en' : t.langs[0];
+  return { use, url: t.single ? t.base : `${t.base}-${use}` };
+}
+function load(withSound) {
+  const t = TOPICS[player.topic], { use, url } = srcFor(t, player.lang);
+  hostV.src = url + '.mp4'; hostV.poster = url + '.jpg';
+  hostV.loop = !withSound; hostV.muted = !withSound;
+  if (withSound || !reduced) hostV.play().catch(() => {});
+  setAdButton(withSound);
+  const want = LANGS.find(l => l.k === player.lang), got = LANGS.find(l => l.k === use);
+  fbEl.textContent = use === player.lang ? '' : `Not recorded in ${want.name} yet. Playing ${got.name}.`;
+  topicsEl.querySelectorAll('.topic').forEach((b, i) => b.setAttribute('aria-pressed', i === player.topic));
+  langsEl.querySelectorAll('.chip').forEach(b => { b.setAttribute('aria-pressed', b.dataset.k === player.lang); b.classList.toggle('missing', !t.langs.includes(b.dataset.k)); });
+}
+topicsEl.innerHTML = TOPICS.map((t, i) => `<button type="button" class="topic" data-i="${i}" aria-pressed="false">${t.title}<small>${t.langs.length === 1 ? t.langs[0].toUpperCase() : t.langs.length + ' lang'}</small></button>`).join('');
+langsEl.insertAdjacentHTML('beforeend', LANGS.map(l => `<button type="button" class="chip" data-k="${l.k}" lang="${l.k}" aria-pressed="false">${l.label}</button>`).join(''));
+topicsEl.addEventListener('click', e => { const b = e.target.closest('.topic'); if (!b) return; player.topic = +b.dataset.i; if (!hostV.muted) stopSound(); load(!hostV.muted); });
+langsEl.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; player.lang = b.dataset.k; load(!hostV.muted); });
+hostPlay.addEventListener('click', () => {
+  if (!hostV.muted) { muteAds(); return; }
+  stopSound(); hostV.currentTime = 0; hostV.loop = false; hostV.muted = false; hostV.play().catch(() => {}); setAdButton(true);
+});
+// With sound on, finishing one message moves on to the next, like a playlist.
+hostV.addEventListener('ended', () => { player.topic = (player.topic + 1) % TOPICS.length; load(player.topic !== 0); });
+hostV.addEventListener('timeupdate', () => { if (hostV.duration) document.getElementById('host-len').textContent = `${hhmmss(hostV.currentTime)} / ${hhmmss(hostV.duration)}`; });
+const navLang = (navigator.language || 'en').slice(0, 2);
+player.lang = { en: 'en', ru: 'ru', de: 'de' }[navLang] || 'ka';
+load(false);
+new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting && !reduced) e.target.play().catch(() => {}); else if (!e.isIntersecting) e.target.pause(); })).observe(filmV);
+new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) { hostV.pause(); } else if (!reduced || !hostV.muted) hostV.play().catch(() => {}); })).observe(hostV);
+
+/* ================= payment split ================= */
+const priceIn = document.getElementById('pay-price');
+const eur = n => '€' + Math.round(n).toLocaleString('en-US');
+function split() {
+  const v = Number(priceIn.value.replace(/[^\d.]/g, '')) || 0;
+  document.querySelector('#pay-now span').textContent = eur(v * .1);
+  document.querySelector('#pay-later span').textContent = eur(v * .9);
+}
+priceIn.addEventListener('input', split);
+priceIn.addEventListener('blur', () => { const v = Number(priceIn.value.replace(/[^\d.]/g, '')); if (v) priceIn.value = Math.round(v).toLocaleString('en-US'); });
+split();
+
+/* ================= loop ================= */
+views.forEach(sizeView);
+if (reduced) { views.forEach(v => v.cv && drawScene(v, 12)); }
+else {
+  let last = 0;
+  const frame = now => {
+    requestAnimationFrame(frame);
+    if (now - last < 33) return; last = now;
+    const t = (now - T0) / 1000;
+    for (const v of views) if (v.cv && v.visible && !v.el.hidden) drawScene(v, t);
+    if (state.focus && !fview.d.video) drawScene(fview, t);
+  };
+  requestAnimationFrame(frame);
+}
+})();
+</script>
