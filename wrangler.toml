@@ -1,0 +1,17 @@
+name = "tmlg-webapp"
+type = "site"
+account_id = ""
+workers_dev = true
+
+# Pages configuration
+pages_build_output_dir = "site"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "tmlg"
+database_id = ""
+
+# Environment variables (set in Cloudflare dashboard)
+[env.production]
+vars = { ENVIRONMENT = "production" }

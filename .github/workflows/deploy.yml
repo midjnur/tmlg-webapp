@@ -1,4 +1,4 @@
-name: Deploy themotorlist.ge
+name: Deploy themotorlist.ge to Cloudflare Pages
 
 on:
   push:
@@ -15,15 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check hosting settings
+      - name: Check deployment settings
         id: cfg
         env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
           LEGAL_NAME: ${{ vars.LEGAL_NAME }}
           CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
         run: |
-          if [ -z "$FTP_SERVER" ] || [ -z "$LEGAL_NAME" ] || [ -z "$CONTACT_EMAIL" ]; then
-            echo "::notice::Not deploying yet. Add the FTP_SERVER, FTP_USERNAME and FTP_PASSWORD secrets and the LEGAL_NAME and CONTACT_EMAIL variables (see README)."
+          if [ -z "$LEGAL_NAME" ] || [ -z "$CONTACT_EMAIL" ]; then
+            echo "::notice::Not deploying yet. Add LEGAL_NAME and CONTACT_EMAIL variables (see README)."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -36,18 +35,10 @@ jobs:
           CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
         run: zsh ./build-site.sh || bash ./build-site.sh
 
-      - name: Upload to Proservice over FTP
+      - name: Deploy to Cloudflare Pages
         if: steps.cfg.outputs.ready == 'true'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: cloudflare/wrangler-action@v3
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
-          server-dir: ${{ vars.FTP_DIR || './public_html/' }}
-          local-dir: ./site/
-          # Only files this workflow uploaded are ever replaced or removed.
-          # Collected requests on the server are never touched.
-          exclude: |
-            **/.git*
-            **/.git*/**
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name=themotorlist
