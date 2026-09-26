@@ -12,3 +12,4 @@ database_id = "ed5bc15a-6b46-4e81-a11d-6a8ace8e6ad4"
 # Environment variables (set in Cloudflare dashboard)
 [env.production]
 vars = { ENVIRONMENT = "production" }
+# RESEND_API_KEY configured in Cloudflare Pages Settings → Runtime variables
