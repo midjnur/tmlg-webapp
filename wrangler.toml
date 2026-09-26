@@ -10,7 +10,7 @@ pages_build_output_dir = "site"
 [[d1_databases]]
 binding = "DB"
 database_name = "tmlg"
-database_id = ""
+database_id = "ed5bc15a-6b46-4e81-a11d-6a8ace8e6ad4"
 
 # Environment variables (set in Cloudflare dashboard)
 [env.production]
