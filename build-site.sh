@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Builds the live website into ./site from the prototype. Run: ./build-site.sh
+# Document requests are collected via Cloudflare Functions + D1 database
+# Transactional emails sent via Resend (RESEND_API_KEY in Cloudflare Pages settings)
 set -euo pipefail
 cd "$(dirname "$0")"
 LEGAL_NAME="${LEGAL_NAME:-}"; CONTACT_EMAIL="${CONTACT_EMAIL:-}"
