@@ -1,7 +1,4 @@
 name = "tmlg-webapp"
-type = "site"
-account_id = "821b73264402b65281b9a859aea0bd9c"
-workers_dev = true
 
 # Pages configuration
 pages_build_output_dir = "site"
