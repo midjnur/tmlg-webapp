@@ -8,6 +8,9 @@ Hosted on **Cloudflare Pages** with **Functions** for document collection and **
 Every push to `main` runs **Deploy themotorlist.ge to Cloudflare Pages** (`.github/workflows/deploy.yml`):
 it builds the site with `build-site.sh` and deploys `site/` + Functions to Cloudflare Pages.
 
+**Cloudflare Pages deploy command:** `npx wrangler pages deploy site --project-name=tmlg-webapp`
+**Runtime variables:** RESEND_API_KEY configured in Cloudflare Pages Settings for email delivery
+
 ## One-time setup
 
 ### 1. Cloudflare Authentication (repository Settings → Secrets and variables → Actions)
