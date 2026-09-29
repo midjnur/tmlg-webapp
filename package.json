@@ -1,0 +1,14 @@
+{
+  "name": "tmlg-webapp",
+  "version": "1.0.0",
+  "description": "themotorlist.ge — TMLG website Worker",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/midjnur/tmlg-webapp.git"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

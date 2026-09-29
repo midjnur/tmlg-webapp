@@ -1,9 +1,12 @@
 /**
  * Worker entry point. run_worker_first is enabled in wrangler.toml, so every
  * request lands here before any static asset is served. That lets us gate
- * /docs/* behind signed, expiring links and block hotlinked /media/* requests,
- * while everything else falls through to the static assets untouched.
+ * /docs/* behind signed, expiring links (and watermark the PDF per requester
+ * on the way out) and block hotlinked /media/* requests, while everything
+ * else falls through to the static assets untouched.
  */
+
+import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 
 const ALLOWED_ORIGINS = [
   'https://themotorlist.ge',
@@ -59,19 +62,20 @@ async function hmac(secret, message) {
     .replace(/=+$/, '');
 }
 
-async function signDocPath(path, secret, ttlSeconds = 60 * 60 * 24) {
+async function signDocPath(path, email, secret, ttlSeconds = 60 * 60 * 24) {
   const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
-  const sig = await hmac(secret, `${path}:${exp}`);
+  const sig = await hmac(secret, `${path}:${email}:${exp}`);
   return { exp, sig };
 }
 
 async function verifyDocRequest(url, secret) {
   const exp = Number(url.searchParams.get('exp'));
   const sig = url.searchParams.get('sig');
-  if (!exp || !sig) return false;
-  if (Date.now() / 1000 > exp) return false;
-  const expected = await hmac(secret, `${url.pathname}:${exp}`);
-  return timingSafeEqual(sig, expected);
+  const email = url.searchParams.get('email') || '';
+  if (!exp || !sig) return { valid: false, email: '' };
+  if (Date.now() / 1000 > exp) return { valid: false, email: '' };
+  const expected = await hmac(secret, `${url.pathname}:${email}:${exp}`);
+  return { valid: timingSafeEqual(sig, expected), email };
 }
 
 function timingSafeEqual(a, b) {
@@ -85,13 +89,62 @@ async function handleDocumentDownload(request, url, env) {
   if (!env.DOC_TOKEN_SECRET) {
     return new Response('Not configured', { status: 500 });
   }
-  const valid = await verifyDocRequest(url, env.DOC_TOKEN_SECRET);
+  const { valid, email } = await verifyDocRequest(url, env.DOC_TOKEN_SECRET);
   if (!valid) {
     return new Response('This link is invalid or has expired. Request the documents again from themotorlist.ge.', {
       status: 403,
     });
   }
-  return env.ASSETS.fetch(request);
+
+  const assetResponse = await env.ASSETS.fetch(new Request(url.origin + url.pathname, request));
+  if (!assetResponse.ok || !url.pathname.toLowerCase().endsWith('.pdf')) {
+    return assetResponse;
+  }
+
+  try {
+    const watermarked = await watermarkPdf(await assetResponse.arrayBuffer(), email);
+    return new Response(watermarked, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${url.pathname.split('/').pop()}"`,
+      },
+    });
+  } catch (error) {
+    console.error('PDF watermarking failed, serving original:', error);
+    return assetResponse;
+  }
+}
+
+async function watermarkPdf(bytes, email) {
+  const pdfDoc = await PDFDocument.load(bytes);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
+  const stamp = `Prepared for ${email || 'requester'} · themotorlist.ge · ${new Date().toISOString().slice(0, 10)}`;
+
+  for (const page of pages) {
+    const { width, height } = page.getSize();
+    page.drawText(stamp, {
+      x: 24,
+      y: 16,
+      size: 9,
+      font,
+      color: rgb(0.55, 0.55, 0.55),
+      opacity: 0.85,
+    });
+    // faint diagonal repeat across the page so a crop can't remove the footer alone
+    page.drawText('themotorlist.ge', {
+      x: width / 2 - 90,
+      y: height / 2,
+      size: 40,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+      opacity: 0.08,
+      rotate: degrees(35),
+    });
+  }
+
+  return pdfDoc.save();
 }
 
 /* ---------------- document request + email ---------------- */
@@ -130,7 +183,7 @@ async function handleDocumentRequest(request, env) {
       .bind(email, carId, name || 'Anonymous', timestamp)
       .run();
 
-    const signedDocs = await signRequestedFiles(files, env);
+    const signedDocs = await signRequestedFiles(files, email, env);
 
     if (env.RESEND_API_KEY) {
       await sendConfirmationEmail(email, carId, signedDocs, env.RESEND_API_KEY);
@@ -162,15 +215,18 @@ async function handleDocumentRequest(request, env) {
 // files: array of relative paths like "docs/CAR0000001/MB-GLS450d.pdf",
 // as embedded in the page's own data. Only ever sign paths under docs/ —
 // anything else is ignored so this can't be used to sign arbitrary assets.
-async function signRequestedFiles(files, env) {
+async function signRequestedFiles(files, email, env) {
   if (!Array.isArray(files) || !env.DOC_TOKEN_SECRET) return [];
   const out = [];
   for (const f of files) {
     if (typeof f !== 'string') continue;
     const path = '/' + f.replace(/^\/+/, '');
     if (!path.startsWith('/docs/') || path.includes('..')) continue;
-    const { exp, sig } = await signDocPath(path, env.DOC_TOKEN_SECRET);
-    out.push({ path: f.replace(/^\/+/, ''), url: `${path}?exp=${exp}&sig=${sig}` });
+    const { exp, sig } = await signDocPath(path, email, env.DOC_TOKEN_SECRET);
+    out.push({
+      path: f.replace(/^\/+/, ''),
+      url: `${path}?email=${encodeURIComponent(email)}&exp=${exp}&sig=${sig}`,
+    });
   }
   return out;
 }

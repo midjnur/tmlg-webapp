@@ -13,6 +13,7 @@ on purpose, because Cloudflare's Git-integration auto-deploy for this project wa
 (wrong repo watched, build command silently not saved, "pages deploy" vs "deploy" mismatch).
 
 ```bash
+npm install   # once, to pull in pdf-lib
 LEGAL_NAME="TMLG LLC" CONTACT_EMAIL="el.tungia@gmail.com" bash build-site.sh
 npx wrangler deploy
 ```
@@ -23,6 +24,27 @@ npx wrangler deploy
   assets in `site/`.
 - Secrets (like `RESEND_API_KEY`) are never stored in `wrangler.toml` — set them with
   `wrangler secret put`.
+
+## Anti-scraping / anti-download protections
+
+None of this makes the site "unscrapable" (a screenshot always works against any website) —
+it stops automated bulk scraping and casual downloading:
+
+- **`/docs/*` (PDFs)**: never public. Only served via a signed, HMAC link that expires in 24h,
+  issued by `POST /api/documents`. The PDF is also watermarked *live*, per request, with the
+  requester's email and the date (see `watermarkPdf` in `src/worker.js`, via `pdf-lib`) — so a
+  leaked copy is traceable to whoever downloaded it.
+- **`/media/*` (photos, videos)**: blocked unless the request's `Referer` is themotorlist.ge
+  itself — stops hotlinking and naive scrapers fetching media URLs directly.
+- **Photos and videos also carry a baked-in "themotorlist.ge" watermark**, applied by
+  `scripts/watermark-media.sh` (ffmpeg + a Pillow-generated overlay) every time `build-site.sh`
+  runs. This one isn't per-viewer/traceable, just deterrent branding — needs `ffmpeg` and
+  `python3` + Pillow (`pip install Pillow`) on the machine that builds the site.
+- **`robots.txt`** excludes `/media/` and `/docs/` from search indexing, while the rest of the
+  site stays crawlable for SEO.
+- Right-click / drag-save disabled on `<img>`/`<video>` (deterrent only).
+- Recommended, not automatable from here: turn on **Bot Fight Mode** in the Cloudflare dashboard
+  under themotorlist.ge → Security, for network-level bot detection.
 
 ## One-time setup (already done, kept for reference)
 
