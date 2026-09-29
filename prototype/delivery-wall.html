@@ -3,6 +3,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
+  img, video { -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
   /* Single dark world on purpose: a video wall reads like a control room. */
   :root {
     color-scheme: dark;
@@ -475,6 +476,13 @@
 
 <script>
 (() => {
+// Casual deterrents against right-click-save / drag-save on media. Not real
+// security (devtools/screenshots always work) — just raises the bar for the
+// average visitor. Real protection is server-side: signed doc links + hotlink
+// checks in the Worker.
+document.addEventListener('contextmenu', e => { if (e.target.closest('img,video,source')) e.preventDefault(); });
+document.addEventListener('dragstart', e => { if (e.target.closest('img,video,source')) e.preventDefault(); });
+
 const STAGES = ['Purchased', 'Inspected', 'Shipped', 'Border', 'Customs', 'Delivered'];
 const P = {
   Munich:[11.58,48.14], Bremerhaven:[8.58,53.54], Hamburg:[9.99,53.55], Stuttgart:[9.18,48.78], Cologne:[6.96,50.94],
@@ -1017,16 +1025,31 @@ dmForm.addEventListener('submit', e => {
   store.set('tmlg-email', email);
   document.getElementById('dm-car').value = `${dmCar.ref} · ${dmCar.car}`;
   document.getElementById('dm-docs').value = picked.map(x => x.name).join(', ');
-  // Send to Cloudflare Function
-  if (COLLECT) fetch('/api/documents', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, carId: dmCar.ref, name: '' }) }).catch(() => {});
-  document.getElementById('dm-for').textContent = `Requested for ${email}. Download them now or open them in a new tab.`;
   const ready = document.getElementById('dm-ready');
-  ready.innerHTML = picked.map((x, i) => `<div class="readyrow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6.5L15 6v11.5H5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg><span>${x.title}<small style="display:block;color:var(--muted);font-size:12px">${x.meta}</small></span><span class="btns"><button type="button" class="cta" data-dl="${i}">Download</button><a class="ghost" href="${x.file}" target="_blank" rel="noopener">Open</a></span></div>`).join('');
-  ready.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => saveDoc(picked[+b.dataset.dl], b)));
-  const msg = `Hi TMLG! I got the documents for ${dmCar.car} (${dmCar.ref}) and have a question.`;
-  document.getElementById('dm-wa').href = 'https://wa.me/995595907136?text=' + encodeURIComponent(msg);
-  dmForm.hidden = true; dmDone.hidden = false;
-  dmDone.querySelector('.cta')?.focus();
+  const wa = () => { const msg = `Hi TMLG! I got the documents for ${dmCar.car} (${dmCar.ref}) and have a question.`; document.getElementById('dm-wa').href = 'https://wa.me/995595907136?text=' + encodeURIComponent(msg); };
+  if (!COLLECT) {
+    // Local/dev only: no backend to sign links against, so show them directly.
+    document.getElementById('dm-for').textContent = `Requested for ${email}. Download them now or open them in a new tab.`;
+    ready.innerHTML = picked.map((x, i) => `<div class="readyrow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6.5L15 6v11.5H5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg><span>${x.title}<small style="display:block;color:var(--muted);font-size:12px">${x.meta}</small></span><span class="btns"><button type="button" class="cta" data-dl="${i}">Download</button><a class="ghost" href="${x.file}" target="_blank" rel="noopener">Open</a></span></div>`).join('');
+    ready.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => saveDoc(picked[+b.dataset.dl], b)));
+    wa(); dmForm.hidden = true; dmDone.hidden = false; dmDone.querySelector('.cta')?.focus();
+    return;
+  }
+  document.getElementById('dm-for').textContent = `Requested for ${email}. Preparing your documents…`;
+  ready.innerHTML = '';
+  wa(); dmForm.hidden = true; dmDone.hidden = false; dmDone.querySelector('.cta')?.focus();
+  fetch('/api/documents', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, carId: dmCar.ref, name: '', files: picked.map(x => x.file) }) })
+    .then(r => r.json())
+    .then(res => {
+      const byPath = Object.fromEntries((res.documents || []).map(d => [d.path, d.url]));
+      document.getElementById('dm-for').textContent = `Requested for ${email}. Download them now or open them in a new tab.`;
+      ready.innerHTML = picked.map((x, i) => {
+        const url = byPath[x.file] || x.file;
+        return `<div class="readyrow"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2.5h6.5L15 6v11.5H5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.5 2.5V6H15M7.5 10h5M7.5 13h5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg><span>${x.title}<small style="display:block;color:var(--muted);font-size:12px">${x.meta}</small></span><span class="btns"><button type="button" class="cta" data-dl="${i}" data-url="${url}">Download</button><a class="ghost" href="${url}" target="_blank" rel="noopener">Open</a></span></div>`;
+      }).join('');
+      ready.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', () => saveDoc({ ...picked[+b.dataset.dl], file: b.dataset.url }, b)));
+    })
+    .catch(() => { document.getElementById('dm-for').textContent = `Requested for ${email}. Something went wrong preparing the links — message us on WhatsApp and we'll send them directly.`; });
 });
 async function saveDoc(x, btn) {
   const label = btn.textContent;

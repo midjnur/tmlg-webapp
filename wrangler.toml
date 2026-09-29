@@ -7,9 +7,13 @@ routes = [
 ]
 
 # Static site output (built by build-site.sh)
+# run_worker_first: every request hits src/worker.js first, so it can gate
+# /docs/* (signed links only) and /media/* (hotlink protection) before
+# falling through to the static assets below.
 [assets]
 directory = "./site"
 binding = "ASSETS"
+run_worker_first = true
 
 # D1 Database
 [[d1_databases]]

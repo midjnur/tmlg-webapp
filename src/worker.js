@@ -1,8 +1,14 @@
 /**
- * Worker entry point. Static assets (the built site) are served automatically
- * by Cloudflare before this runs; this only handles requests that don't match
- * a static file, i.e. the API routes below.
+ * Worker entry point. run_worker_first is enabled in wrangler.toml, so every
+ * request lands here before any static asset is served. That lets us gate
+ * /docs/* behind signed, expiring links and block hotlinked /media/* requests,
+ * while everything else falls through to the static assets untouched.
  */
+
+const ALLOWED_ORIGINS = [
+  'https://themotorlist.ge',
+  'https://tmlg-webapp.midjnur.workers.dev',
+];
 
 export default {
   async fetch(request, env) {
@@ -12,9 +18,83 @@ export default {
       return handleDocumentRequest(request, env);
     }
 
+    if (url.pathname.startsWith('/docs/')) {
+      return handleDocumentDownload(request, url, env);
+    }
+
+    if (url.pathname.startsWith('/media/')) {
+      const referer = request.headers.get('Referer');
+      if (!isAllowedReferer(referer)) {
+        return new Response('Forbidden', { status: 403 });
+      }
+    }
+
     return env.ASSETS.fetch(request);
   },
 };
+
+function isAllowedReferer(referer) {
+  if (!referer) return false;
+  try {
+    return ALLOWED_ORIGINS.includes(new URL(referer).origin);
+  } catch {
+    return false;
+  }
+}
+
+/* ---------------- signed document links ---------------- */
+
+async function hmac(secret, message) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+  return btoa(String.fromCharCode(...new Uint8Array(sig)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+async function signDocPath(path, secret, ttlSeconds = 60 * 60 * 24) {
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const sig = await hmac(secret, `${path}:${exp}`);
+  return { exp, sig };
+}
+
+async function verifyDocRequest(url, secret) {
+  const exp = Number(url.searchParams.get('exp'));
+  const sig = url.searchParams.get('sig');
+  if (!exp || !sig) return false;
+  if (Date.now() / 1000 > exp) return false;
+  const expected = await hmac(secret, `${url.pathname}:${exp}`);
+  return timingSafeEqual(sig, expected);
+}
+
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function handleDocumentDownload(request, url, env) {
+  if (!env.DOC_TOKEN_SECRET) {
+    return new Response('Not configured', { status: 500 });
+  }
+  const valid = await verifyDocRequest(url, env.DOC_TOKEN_SECRET);
+  if (!valid) {
+    return new Response('This link is invalid or has expired. Request the documents again from themotorlist.ge.', {
+      status: 403,
+    });
+  }
+  return env.ASSETS.fetch(request);
+}
+
+/* ---------------- document request + email ---------------- */
 
 async function handleDocumentRequest(request, env) {
   if (request.method !== 'POST') {
@@ -22,7 +102,7 @@ async function handleDocumentRequest(request, env) {
   }
 
   try {
-    const { email, carId, name } = await request.json();
+    const { email, carId, name, files } = await request.json();
 
     if (!email || !carId) {
       return new Response(
@@ -50,14 +130,17 @@ async function handleDocumentRequest(request, env) {
       .bind(email, carId, name || 'Anonymous', timestamp)
       .run();
 
+    const signedDocs = await signRequestedFiles(files, env);
+
     if (env.RESEND_API_KEY) {
-      await sendConfirmationEmail(email, carId, env.RESEND_API_KEY);
+      await sendConfirmationEmail(email, carId, signedDocs, env.RESEND_API_KEY);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Request received. Check your email for documents.',
+        documents: signedDocs,
       }),
       {
         status: 200,
@@ -76,8 +159,27 @@ async function handleDocumentRequest(request, env) {
   }
 }
 
-async function sendConfirmationEmail(email, carId, apiKey) {
+// files: array of relative paths like "docs/CAR0000001/MB-GLS450d.pdf",
+// as embedded in the page's own data. Only ever sign paths under docs/ —
+// anything else is ignored so this can't be used to sign arbitrary assets.
+async function signRequestedFiles(files, env) {
+  if (!Array.isArray(files) || !env.DOC_TOKEN_SECRET) return [];
+  const out = [];
+  for (const f of files) {
+    if (typeof f !== 'string') continue;
+    const path = '/' + f.replace(/^\/+/, '');
+    if (!path.startsWith('/docs/') || path.includes('..')) continue;
+    const { exp, sig } = await signDocPath(path, env.DOC_TOKEN_SECRET);
+    out.push({ path: f.replace(/^\/+/, ''), url: `${path}?exp=${exp}&sig=${sig}` });
+  }
+  return out;
+}
+
+async function sendConfirmationEmail(email, carId, signedDocs, apiKey) {
   try {
+    const links = signedDocs
+      .map((d) => `<li><a href="https://themotorlist.ge${d.url}">${d.path.split('/').pop()}</a></li>`)
+      .join('');
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -91,8 +193,8 @@ async function sendConfirmationEmail(email, carId, apiKey) {
         html: `
           <h2>Thank you for your interest!</h2>
           <p>We've received your document request for car <strong>${carId}</strong>.</p>
+          ${links ? `<p>Your documents (links expire in 24 hours):</p><ul>${links}</ul>` : ''}
           <p>The seller will send you detailed information within 24 hours.</p>
-          <p>Keep an eye on your inbox!</p>
           <hr />
           <p><a href="https://themotorlist.ge">Back to themotorlist.ge</a></p>
         `,
