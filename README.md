@@ -1,7 +1,8 @@
 # themotorlist.ge
 
 TMLG website: the delivery wall, presenter videos, document requests and payment info.
-Hosted on **Cloudflare Pages** with **Functions** for document collection and **D1** for data storage.
+Hosted on **Cloudflare Pages** (Workers & Pages) with **Functions** for document collection and **D1** for data storage.
+Custom domain `themotorlist.ge` and `workers.dev` URL both attached under Domains.
 
 ## How it goes live
 
