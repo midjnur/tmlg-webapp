@@ -1,7 +1,15 @@
 name = "tmlg-webapp"
+main = "src/worker.js"
+compatibility_date = "2026-09-25"
 
-# Pages configuration
-pages_build_output_dir = "site"
+routes = [
+  { pattern = "themotorlist.ge", custom_domain = true }
+]
+
+# Static site output (built by build-site.sh)
+[assets]
+directory = "./site"
+binding = "ASSETS"
 
 # D1 Database
 [[d1_databases]]
@@ -9,7 +17,6 @@ binding = "DB"
 database_name = "tmlg"
 database_id = "ed5bc15a-6b46-4e81-a11d-6a8ace8e6ad4"
 
-# Environment variables (set in Cloudflare dashboard)
-[env.production]
-vars = { ENVIRONMENT = "production" }
-# RESEND_API_KEY configured in Cloudflare Pages Settings → Runtime variables
+[vars]
+ENVIRONMENT = "production"
+# RESEND_API_KEY is a secret, not a var — set via: echo "key" | npx wrangler secret put RESEND_API_KEY
