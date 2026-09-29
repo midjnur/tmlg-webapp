@@ -15,6 +15,7 @@ cp site-extra/favicon.svg site/
 # Request collection switches on once the TMLG dashboard is on the server.
 cp prototype/delivery-wall.html site/index.html
 { echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="description" content="Cars bought in Europe and delivered to Georgia and Central Asia, filmed every step of the way."><title>Not Selling Cars. Delivering Dreams.</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><style>[hidden]{display:none!important}body{margin:0}</style></head><body>'; cat site/index.html; echo '</body></html>'; } > site/index.tmp && mv site/index.tmp site/index.html
+sed -i.bak -e "s|__LEGAL_NAME__|$LEGAL_NAME|g" -e "s|__CONTACT_EMAIL_RAW__|$CONTACT_EMAIL|g" site/index.html && rm site/index.html.bak
 sed -e "s|__LEGAL_NAME__|$LEGAL_NAME|g" -e "s|__CONTACT_EMAIL__|<a href=\"mailto:$CONTACT_EMAIL\">$CONTACT_EMAIL</a>|g" site-extra/privacy.html > site/privacy.html
 cp site-extra/robots.txt site/
 echo "Built ./site ($(du -sh site | cut -f1))"

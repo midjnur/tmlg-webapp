@@ -103,6 +103,15 @@
   .wa-float::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 0 rgba(37,211,102,.55); animation: ring 2.4s infinite; }
   @keyframes ring { 70% { box-shadow: 0 0 0 16px rgba(37,211,102,0); } 100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); } }
 
+  .site-footer { border-top: 1px solid var(--line); padding: 36px 20px 28px; margin-top: 8px; }
+  .site-footer-in { max-width: 1100px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px 40px; align-items: center; justify-content: space-between; }
+  .site-footer-brand { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; letter-spacing: .04em; font-size: 18px; text-transform: uppercase; }
+  .site-footer-brand svg { width: 26px; height: 16px; }
+  .site-footer-links, .site-footer-contact { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .site-footer-links a, .site-footer-contact a { color: var(--muted); text-decoration: none; font-size: 14px; }
+  .site-footer-links a:hover, .site-footer-contact a:hover { color: var(--ink); }
+  .site-footer-legal { max-width: 1100px; margin: 20px auto 0; font-size: 12px; color: var(--muted); }
+
   /* ---------- presenter ---------- */
   .intro-copy { display: grid; gap: 18px; align-content: end; }
   .host { margin: 0; display: grid; gap: 10px; }
@@ -115,9 +124,6 @@
   .host figcaption { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .langs { display: flex; gap: 4px; flex-wrap: wrap; }
   .langs span { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-right: 6px; align-self: center; }
-  .topics { display: flex; gap: 6px; flex-wrap: wrap; }
-  .topic { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 3px; padding: 6px 12px; font-size: 13px; cursor: pointer; display: inline-flex; gap: 8px; align-items: baseline; }
-  .topic:hover { color: var(--ink); }
   .topic[aria-pressed="true"] { border-color: var(--amber); color: var(--ink); }
   .topic small { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
   .chip.missing { opacity: .45; }
@@ -320,9 +326,8 @@
     </div>
     </div>
     <figure class="host">
-      <div class="topics" id="host-topics" role="group" aria-label="Choose a video"></div>
       <div class="host-video">
-        <video id="host-v" muted loop playsinline autoplay preload="metadata" aria-label="A message from TMLG"></video>
+        <video id="host-v" muted playsinline autoplay preload="metadata" aria-label="A message from TMLG"></video>
         <span class="badge host-tag">A message from TMLG</span>
         <button class="bigplay" id="host-play" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4v12l10-6z" fill="currentColor"/></svg><span>Play with sound</span></button>
       </div>
@@ -420,6 +425,27 @@
     </div>
   </section>
 </div>
+
+<footer class="site-footer">
+  <div class="site-footer-in">
+    <div class="site-footer-brand">
+      <svg viewBox="0 0 34 20" aria-hidden="true"><circle cx="4" cy="15" r="3" fill="#f0b429"/><path d="M4 15 C 12 0, 22 0, 30 8" stroke="#ebe9e3" stroke-width="2" fill="none" stroke-dasharray="3 3"/><circle cx="30" cy="8" r="3" fill="#ebe9e3"/></svg>
+      <span>TMLG</span>
+    </div>
+    <nav class="site-footer-links" aria-label="Footer">
+      <a href="#">Deliveries</a>
+      <a href="#how-to-pay">How to pay</a>
+      <a href="https://themotorlist.com/" target="_blank" rel="noopener">Browse cars</a>
+      <a href="/privacy.html">Privacy</a>
+    </nav>
+    <div class="site-footer-contact">
+      <a href="https://wa.me/995595907136" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="mailto:__CONTACT_EMAIL_RAW__">__CONTACT_EMAIL_RAW__</a>
+    </div>
+  </div>
+  <p class="site-footer-legal">© <span id="footer-year"></span> __LEGAL_NAME__ · Cars bought in the EU, delivered to Georgia and Central Asia.</p>
+</footer>
+<script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
 
 <a class="wa-float" href="https://wa.me/995595907136?text=Hi%20TMLG!%20I%27m%20ready%20%E2%80%94%20can%20we%20do%20a%20video%20call%20about%20a%20car%3F" target="_blank" rel="noopener" aria-label="Video call us on WhatsApp" title="Video call us on WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2A9.7 9.7 0 0 0 3.6 16.8L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.6 9.6h5.6a1 1 0 0 1 1 1v3.6a1 1 0 0 1-1 1H7.6a1 1 0 0 1-1-1v-3.6a1 1 0 0 1 1-1Zm6.6 2.2 2.6-1.6v5.2l-2.6-1.6Z" fill="currentColor"/></svg></a>
 
@@ -1119,35 +1145,35 @@ const TOPICS = [
 ];
 const hostV = document.getElementById('host-v'), hostPlay = document.getElementById('host-play');
 const filmV = document.getElementById('film-v');
-const langsEl = document.getElementById('host-langs'), topicsEl = document.getElementById('host-topics'), fbEl = document.getElementById('host-fallback');
+const langsEl = document.getElementById('host-langs'), fbEl = document.getElementById('host-fallback');
 const player = { topic: 0, lang: 'ka' };
 function setAdButton(on) { hostPlay.classList.toggle('on', on); hostPlay.querySelector('span').textContent = on ? 'Mute' : 'Play with sound'; }
-function muteAds() { hostV.muted = true; hostV.loop = true; if (hostV.paused && !reduced) hostV.play().catch(() => {}); setAdButton(false); }
+function muteAds() { hostV.muted = true; setAdButton(false); }
 function srcFor(t, lang) {
   const use = t.langs.includes(lang) ? lang : t.langs.includes('en') ? 'en' : t.langs[0];
   return { use, url: t.single ? t.base : `${t.base}-${use}` };
 }
+// No topic picker: the messages auto-advance on their own, in a loop, whether
+// or not anyone has interacted with the player — only the language is a choice.
 function load(withSound) {
   const t = TOPICS[player.topic], { use, url } = srcFor(t, player.lang);
   hostV.src = url + '.mp4'; hostV.poster = url + '.jpg';
-  hostV.loop = !withSound; hostV.muted = !withSound;
+  hostV.loop = false; hostV.muted = !withSound;
   if (withSound || !reduced) hostV.play().catch(() => {});
   setAdButton(withSound);
   const want = LANGS.find(l => l.k === player.lang), got = LANGS.find(l => l.k === use);
   fbEl.textContent = use === player.lang ? '' : `Not recorded in ${want.name} yet. Playing ${got.name}.`;
-  topicsEl.querySelectorAll('.topic').forEach((b, i) => b.setAttribute('aria-pressed', i === player.topic));
   langsEl.querySelectorAll('.chip').forEach(b => { b.setAttribute('aria-pressed', b.dataset.k === player.lang); b.classList.toggle('missing', !t.langs.includes(b.dataset.k)); });
 }
-topicsEl.innerHTML = TOPICS.map((t, i) => `<button type="button" class="topic" data-i="${i}" aria-pressed="false">${t.title}<small>${t.langs.length === 1 ? t.langs[0].toUpperCase() : t.langs.length + ' lang'}</small></button>`).join('');
 langsEl.insertAdjacentHTML('beforeend', LANGS.map(l => `<button type="button" class="chip" data-k="${l.k}" lang="${l.k}" aria-pressed="false">${l.label}</button>`).join(''));
-topicsEl.addEventListener('click', e => { const b = e.target.closest('.topic'); if (!b) return; player.topic = +b.dataset.i; if (!hostV.muted) stopSound(); load(!hostV.muted); });
 langsEl.addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; player.lang = b.dataset.k; load(!hostV.muted); });
 hostPlay.addEventListener('click', () => {
   if (!hostV.muted) { muteAds(); return; }
-  stopSound(); hostV.currentTime = 0; hostV.loop = false; hostV.muted = false; hostV.play().catch(() => {}); setAdButton(true);
+  hostV.muted = false; hostV.play().catch(() => {}); setAdButton(true);
 });
-// With sound on, finishing one message moves on to the next, like a playlist.
-hostV.addEventListener('ended', () => { player.topic = (player.topic + 1) % TOPICS.length; load(player.topic !== 0); });
+// Whatever the current sound state is, finishing one message moves on to the
+// next and keeps cycling through all of them, forever.
+hostV.addEventListener('ended', () => { player.topic = (player.topic + 1) % TOPICS.length; load(!hostV.muted); });
 hostV.addEventListener('timeupdate', () => { if (hostV.duration) document.getElementById('host-len').textContent = `${hhmmss(hostV.currentTime)} / ${hhmmss(hostV.duration)}`; });
 const navLang = (navigator.language || 'en').slice(0, 2);
 player.lang = { en: 'en', ru: 'ru', de: 'de' }[navLang] || 'ka';
