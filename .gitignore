@@ -1,6 +1,8 @@
-# Built output (made by build-site.sh / GitHub Actions)
+# Built output (made by build-site.sh)
 site/
 .DS_Store
+# Local wrangler cache/state
+.wrangler/
 # Never commit collected customer data or secrets
 data/
 *.env

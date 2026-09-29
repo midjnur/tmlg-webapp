@@ -5,38 +5,25 @@ Hosted on **Cloudflare Pages** with **Functions** for document collection and **
 
 ## How it goes live
 
-Every push to `main` runs **Deploy themotorlist.ge to Cloudflare Pages** (`.github/workflows/deploy.yml`):
-it builds the site with `build-site.sh` and deploys `site/` + Functions to Cloudflare Pages.
+Cloudflare Pages' native Git integration deploys `tmlg-webapp` on every push to `main`
+(configured entirely in the Cloudflare dashboard — no GitHub Actions involved):
 
-**Cloudflare Pages deploy command:** `npx wrangler pages deploy site --project-name=tmlg-webapp`
-**Runtime variables:** RESEND_API_KEY configured in Cloudflare Pages Settings for email delivery
+- **Build command:** `LEGAL_NAME="TMLG LLC" CONTACT_EMAIL="el.tungia@gmail.com" bash build-site.sh`
+- **Deploy command:** `npx wrangler pages deploy site --project-name=tmlg-webapp`
+- **Runtime variables:** `RESEND_API_KEY` set in Cloudflare Pages Settings → Runtime variables
+
+All set in **Cloudflare Pages → tmlg-webapp → Settings → Build configuration / Runtime variables**.
 
 ## One-time setup
 
-### 1. Cloudflare Authentication (repository Settings → Secrets and variables → Actions)
-
-**Secrets** (encrypted, never visible after saving)
-
-| Name | How to get |
-|---|---|
-| `CLOUDFLARE_API_TOKEN` | Visit https://dash.cloudflare.com/profile/api-tokens → Create Token → Use "Edit Cloudflare Workers" template |
-| `CLOUDFLARE_ACCOUNT_ID` | Dashboard → Sidebar → Copy account ID (23-char hex) |
-
-**Variables**
-
-| Name | Example | Needed |
-|---|---|---|
-| `LEGAL_NAME` | `TMLG LLC` | yes, shown on privacy page |
-| `CONTACT_EMAIL` | `el.tungia@gmail.com` | yes, shown on privacy page |
-
-### 2. Cloudflare Domain Setup
+### 1. Cloudflare Domain Setup
 
 1. In Cloudflare dashboard: **Domains** → **Add site** → `themotorlist.ge`
 2. Cloudflare gives you 2 nameservers to copy
 3. Update nameservers at your domain registrar (where you registered `themotorlist.ge`)
 4. Wait 10–30 mins for DNS to propagate
 
-### 3. D1 Database
+### 2. D1 Database
 
 Once domain is added and nameservers are updated:
 
@@ -46,15 +33,13 @@ npx wrangler d1 create tmlg
 npx wrangler d1 execute tmlg --file ./migrations/0001_init_documents.sql
 ```
 
-### 4. Environment Variables in Cloudflare
+### 3. Environment Variables in Cloudflare
 
-In Cloudflare dashboard → Workers & Pages → themotorlist → Settings → Environment variables:
+In Cloudflare dashboard → Workers & Pages → tmlg-webapp → Settings → Runtime variables:
 
 ```
 RESEND_API_KEY = (your Resend API key, optional)
 ```
-
-Until all GitHub secrets and variables exist, the workflow runs but skips the deploy.
 
 ## Where things live
 
@@ -67,5 +52,5 @@ Until all GitHub secrets and variables exist, the workflow runs but skips the de
 ## Build locally
 
 ```
-LEGAL_NAME='TMLG LLC' CONTACT_EMAIL='hello@themotorlist.ge' ./build-site.sh
+LEGAL_NAME='TMLG LLC' CONTACT_EMAIL='el.tungia@gmail.com' ./build-site.sh
 ```
