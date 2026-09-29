@@ -78,6 +78,13 @@
   .field label { font-size: 13px; font-weight: 500; }
   .field input { background: var(--ground); border: 1px solid var(--line); border-radius: 3px; padding: 11px 12px; color: var(--ink); font: inherit; font-size: 15px; }
   .field input:focus { outline: 0; border-color: var(--amber); }
+  .field textarea { background: var(--ground); border: 1px solid var(--line); border-radius: 3px; padding: 11px 12px; color: var(--ink); font: inherit; font-size: 15px; resize: vertical; min-height: 90px; }
+  .field textarea:focus { outline: 0; border-color: var(--amber); }
+  .choice { display: flex; gap: 16px; }
+  .choice label { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+  .choice input { accent-color: var(--amber); }
+  .linklike { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: none; font: inherit; font-size: 14px; cursor: pointer; }
+  .linklike:hover { color: var(--ink); }
   .field input[aria-invalid="true"] { border-color: var(--live); }
   .err { color: var(--live); font-size: 13px; margin: 0; min-height: 1.2em; }
   .check { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; color: var(--muted); cursor: pointer; }
@@ -440,7 +447,7 @@
     </nav>
     <div class="site-footer-contact">
       <a href="https://wa.me/995595907136" target="_blank" rel="noopener">WhatsApp</a>
-      <a href="mailto:__CONTACT_EMAIL_RAW__">__CONTACT_EMAIL_RAW__</a>
+      <button type="button" class="linklike" id="open-contact">Contact us</button>
     </div>
   </div>
   <p class="site-footer-legal">© <span id="footer-year"></span> __LEGAL_NAME__ · Cars bought in the EU, delivered to Georgia and Central Asia.</p>
@@ -474,6 +481,45 @@
     <div><h2>Your documents are ready</h2><p class="sub" id="dm-for" style="margin-top:8px"></p></div>
     <div class="ready" id="dm-ready"></div>
     <a class="wa" id="dm-wa" target="_blank" rel="noopener" style="justify-self:start"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2A9.7 9.7 0 0 0 3.6 16.8L2.3 21.7l5-1.3A9.7 9.7 0 1 0 12 2.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7.6 9.6h5.6a1 1 0 0 1 1 1v3.6a1 1 0 0 1-1 1H7.6a1 1 0 0 1-1-1v-3.6a1 1 0 0 1 1-1Zm6.6 2.2 2.6-1.6v5.2l-2.6-1.6Z" fill="currentColor"/></svg><span>Ask me about this car on WhatsApp</span></a>
+  </div>
+</div>
+
+<div class="docmodal" id="contactmodal" hidden role="dialog" aria-modal="true" aria-labelledby="cm-title">
+  <form class="dmbox" id="cm-form" novalidate>
+    <button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="2"/></svg></button>
+    <div><h2 id="cm-title">Contact us</h2></div>
+    <p class="sub">Tell us how to reach you and what's on your mind — we'll get back to you.</p>
+    <div class="field">
+      <label for="cm-name">Your name</label>
+      <input id="cm-name" name="name" type="text" autocomplete="name" required>
+    </div>
+    <div class="field">
+      <label for="cm-email">Your email</label>
+      <input id="cm-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="name@example.com" required>
+    </div>
+    <div class="field">
+      <label for="cm-phone">Phone number <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <input id="cm-phone" name="phone" type="tel" autocomplete="tel" placeholder="+995 ...">
+    </div>
+    <div class="field">
+      <label id="cm-pref-label">How should we contact you back?</label>
+      <div class="choice" role="radiogroup" aria-labelledby="cm-pref-label">
+        <label><input type="radio" name="preferredContact" value="email" checked> Email</label>
+        <label><input type="radio" name="preferredContact" value="phone"> Phone</label>
+      </div>
+    </div>
+    <div class="field">
+      <label for="cm-message">Message</label>
+      <textarea id="cm-message" name="message" required placeholder="What can we help with?"></textarea>
+    </div>
+    <p class="err" id="cm-err" aria-live="polite"></p>
+    <button type="submit" class="cta">Send</button>
+    <p class="fine">We only use this to get back to you. <a href="privacy.html" target="_blank" rel="noopener" style="color:inherit">Privacy</a></p>
+  </form>
+  <div class="dmbox" id="cm-done" hidden>
+    <button class="close" type="button" data-close aria-label="Close"><svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13" stroke="currentColor" stroke-width="2"/></svg></button>
+    <div class="ok-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.4" fill="none"/></svg></div>
+    <div><h2>Message sent</h2><p class="sub" style="margin-top:8px">Thanks — we'll be in touch soon.</p></div>
   </div>
 </div>
 
@@ -1090,6 +1136,44 @@ async function saveDoc(x, btn) {
     if (!err || !['declined', 'rate_limited'].includes(err.code)) window.open(x.file, '_blank', 'noopener');
   }
 }
+
+/* ================= contact form ================= */
+const contactModal = document.getElementById('contactmodal'), cmForm = document.getElementById('cm-form'), cmDone = document.getElementById('cm-done'), cmErr = document.getElementById('cm-err');
+function openContact() {
+  cmForm.reset(); cmErr.textContent = ''; cmForm.hidden = false; cmDone.hidden = true; contactModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  document.getElementById('cm-name').focus();
+}
+function closeContact() { contactModal.hidden = true; if (!state.focus) document.body.style.overflow = ''; }
+document.getElementById('open-contact').addEventListener('click', openContact);
+contactModal.addEventListener('click', e => { if (e.target === contactModal || e.target.closest('[data-close]')) closeContact(); });
+document.addEventListener('keydown', e => { if (!contactModal.hidden && e.key === 'Escape') closeContact(); });
+cmForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const name = document.getElementById('cm-name').value.trim();
+  const email = document.getElementById('cm-email').value.trim();
+  const phone = document.getElementById('cm-phone').value.trim();
+  const preferredContact = cmForm.querySelector('input[name="preferredContact"]:checked').value;
+  const message = document.getElementById('cm-message').value.trim();
+  if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || !message) {
+    cmErr.textContent = 'Please fill in your name, a valid email, and a message.';
+    return;
+  }
+  if (preferredContact === 'phone' && !phone) {
+    cmErr.textContent = 'Add a phone number, or choose to be contacted by email instead.';
+    return;
+  }
+  cmErr.textContent = '';
+  const btn = cmForm.querySelector('.cta'); btn.disabled = true; btn.textContent = 'Sending…';
+  fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, phone, preferredContact, message }) })
+    .then(r => r.json())
+    .then(res => {
+      btn.disabled = false; btn.textContent = 'Send';
+      if (res.success) { cmForm.hidden = true; cmDone.hidden = false; cmDone.querySelector('.close')?.focus(); }
+      else { cmErr.textContent = res.error || 'Something went wrong. Please try again or message us on WhatsApp.'; }
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = 'Send'; cmErr.textContent = 'Something went wrong. Please try again or message us on WhatsApp.'; });
+});
 
 /* ================= map ================= */
 const map = document.getElementById('map'), hint = document.getElementById('maphint');

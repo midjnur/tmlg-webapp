@@ -21,6 +21,10 @@ export default {
       return handleDocumentRequest(request, env);
     }
 
+    if (url.pathname === '/api/contact') {
+      return handleContactRequest(request, env);
+    }
+
     if (url.pathname.startsWith('/docs/')) {
       return handleDocumentDownload(request, url, env);
     }
@@ -232,10 +236,25 @@ async function signRequestedFiles(files, email, env) {
 }
 
 async function sendConfirmationEmail(email, carId, signedDocs, apiKey) {
+  const links = signedDocs
+    .map((d) => `<li><a href="https://themotorlist.ge${d.url}">${d.path.split('/').pop()}</a></li>`)
+    .join('');
+  await sendEmail(apiKey, {
+    to: email,
+    subject: `Your car documents from TMLG`,
+    html: `
+      <h2>Thank you for your interest!</h2>
+      <p>We've received your document request for car <strong>${carId}</strong>.</p>
+      ${links ? `<p>Your documents (links expire in 24 hours):</p><ul>${links}</ul>` : ''}
+      <p>The seller will send you detailed information within 24 hours.</p>
+      <hr />
+      <p><a href="https://themotorlist.ge">Back to themotorlist.ge</a></p>
+    `,
+  });
+}
+
+async function sendEmail(apiKey, { to, subject, html, replyTo }) {
   try {
-    const links = signedDocs
-      .map((d) => `<li><a href="https://themotorlist.ge${d.url}">${d.path.split('/').pop()}</a></li>`)
-      .join('');
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -244,23 +263,94 @@ async function sendConfirmationEmail(email, carId, signedDocs, apiKey) {
       },
       body: JSON.stringify({
         from: 'noreply@themotorlist.ge',
-        to: email,
-        subject: `Your car documents from TMLG`,
-        html: `
-          <h2>Thank you for your interest!</h2>
-          <p>We've received your document request for car <strong>${carId}</strong>.</p>
-          ${links ? `<p>Your documents (links expire in 24 hours):</p><ul>${links}</ul>` : ''}
-          <p>The seller will send you detailed information within 24 hours.</p>
-          <hr />
-          <p><a href="https://themotorlist.ge">Back to themotorlist.ge</a></p>
-        `,
+        to,
+        subject,
+        html,
+        ...(replyTo ? { reply_to: replyTo } : {}),
       }),
     });
-
     if (!response.ok) {
       console.error('Resend API error:', await response.text());
     }
   } catch (error) {
     console.error('Email sending failed (non-blocking):', error);
   }
+}
+
+/* ---------------- contact form ---------------- */
+
+async function handleContactRequest(request, env) {
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
+
+  try {
+    const { name, email, phone, preferredContact, message } = await request.json();
+
+    if (!name || !email || !message) {
+      return new Response(
+        JSON.stringify({ error: 'Name, email and message are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid email' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const contactMethod = preferredContact === 'phone' ? 'phone' : 'email';
+    if (contactMethod === 'phone' && !phone) {
+      return new Response(
+        JSON.stringify({ error: 'Phone number is required to be contacted by phone' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const db = env.DB;
+    const timestamp = new Date().toISOString();
+
+    await db
+      .prepare(
+        `INSERT INTO contact_requests (name, email, phone, preferred_contact, message, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .bind(name, email, phone || null, contactMethod, message, timestamp)
+      .run();
+
+    if (env.RESEND_API_KEY && env.CONTACT_EMAIL) {
+      await sendEmail(env.RESEND_API_KEY, {
+        to: env.CONTACT_EMAIL,
+        replyTo: email,
+        subject: `New website enquiry from ${name}`,
+        html: `
+          <h2>New contact form submission</h2>
+          <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+          <p><strong>Phone:</strong> ${phone ? escapeHtml(phone) : '(not given)'}</p>
+          <p><strong>Prefers to be contacted by:</strong> ${contactMethod}</p>
+          <p><strong>Message:</strong></p>
+          <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+        `,
+      });
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, message: "Thanks — we'll be in touch soon." }),
+      { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } }
+    );
+  } catch (error) {
+    console.error('Error processing contact request:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to process request' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
